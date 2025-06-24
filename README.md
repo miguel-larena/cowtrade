@@ -1,2 +1,2 @@
-# cowjones
+# cowtrade
 A game inspired by Kuhhandel.
