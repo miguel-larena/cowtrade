@@ -20,7 +20,7 @@ export interface GameState {
   deck: Card[];
   currentTurn: string;
   currentPhase: GamePhase;
-  auctionCard: Card | null;
+  auctionCard?: Card;
   currentBid: number;
   currentBidder: string | null;
 }
