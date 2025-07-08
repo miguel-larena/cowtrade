@@ -1,24 +1,35 @@
 import React from 'react';
-import { useGameState } from '../hooks/useGameState';
 import PlayerHand from '../components/PlayerHand';
 import AuctionPanel from '../components/AuctionPanel';
 import TradingPanel from '../components/TradingPanel';
 import GameControls from '../components/GameControls';
+import type { GameState, GamePhase } from '../types';
 
-const GameBoard: React.FC = () => {
-  const {
-    gameState,
-    currentPlayerId,
-    changePhase,
-    nextTurn,
-    handlePlaceBid,
-    handleWinAuction,
-    handleTradeCards,
-    startGame,
-    endGame,
-    isCurrentPlayerTurn
-  } = useGameState();
+interface GameBoardProps {
+  gameState: GameState;
+  currentPlayerId: string;
+  onPhaseChange: (phase: GamePhase) => void;
+  onNextTurn: () => void;
+  onPlaceBid: (playerId: string, amount: number) => void;
+  onWinAuction: () => void;
+  onTradeCards: (player1Id: string, player2Id: string, card1Id: string, card2Id: string) => void;
+  onStartGame: () => void;
+  onEndGame: () => void;
+  isCurrentPlayerTurn: (playerId: string) => boolean;
+}
 
+const GameBoard: React.FC<GameBoardProps> = ({
+  gameState,
+  currentPlayerId,
+  onPhaseChange,
+  onNextTurn,
+  onPlaceBid,
+  onWinAuction,
+  onTradeCards,
+  onStartGame,
+  onEndGame,
+  isCurrentPlayerTurn
+}) => {
   const renderPhaseContent = () => {
     switch (gameState.currentPhase) {
       case 'lobby':
@@ -42,8 +53,8 @@ const GameBoard: React.FC = () => {
           <AuctionPanel
             gameState={gameState}
             currentPlayerId={currentPlayerId}
-            onPlaceBid={(amount) => handlePlaceBid(currentPlayerId, amount)}
-            onWinAuction={handleWinAuction}
+            onPlaceBid={(amount) => onPlaceBid(currentPlayerId, amount)}
+            onWinAuction={onWinAuction}
           />
         );
       
@@ -51,7 +62,7 @@ const GameBoard: React.FC = () => {
         return (
           <TradingPanel
             gameState={gameState}
-            onTradeCards={handleTradeCards}
+            onTradeCards={(player1Id, player2Id, card1Id, card2Id) => onTradeCards(player1Id, player2Id, card1Id, card2Id)}
           />
         );
       
@@ -100,10 +111,10 @@ const GameBoard: React.FC = () => {
           <GameControls
             gameState={gameState}
             currentPlayerId={currentPlayerId}
-            onPhaseChange={changePhase}
-            onNextTurn={nextTurn}
-            onStartGame={startGame}
-            onEndGame={endGame}
+            onPhaseChange={onPhaseChange}
+            onNextTurn={onNextTurn}
+            onStartGame={onStartGame}
+            onEndGame={onEndGame}
           />
         </div>
 

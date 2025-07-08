@@ -29,26 +29,58 @@ export const testPlayers: Player[] = [
   {
     id: 'player1',
     name: 'Alice',
-    hand: [animalCards[0], moneyCards[1]],
-    money: 150,
+    hand: [
+      { id: 'money10_1_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_1_2', type: 'money', value: 10, name: '10' },
+      { id: 'money10_1_3', type: 'money', value: 10, name: '10' },
+      { id: 'money10_1_4', type: 'money', value: 10, name: '10' },
+      { id: 'money0_1_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_1_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_1_1', type: 'money', value: 50, name: '50' }
+    ],
+    money: 90,
   },
   {
     id: 'player2',
     name: 'Bob',
-    hand: [animalCards[2], moneyCards[3]],
-    money: 120,
+    hand: [
+      { id: 'money10_2_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_2_2', type: 'money', value: 10, name: '10' },
+      { id: 'money10_2_3', type: 'money', value: 10, name: '10' },
+      { id: 'money10_2_4', type: 'money', value: 10, name: '10' },
+      { id: 'money0_2_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_2_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_2_1', type: 'money', value: 50, name: '50' }
+    ],
+    money: 90,
   },
   {
     id: 'player3',
     name: 'Charlie',
-    hand: [animalCards[4], moneyCards[5]],
-    money: 200,
+    hand: [
+      { id: 'money10_3_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_3_2', type: 'money', value: 10, name: '10' },
+      { id: 'money10_3_3', type: 'money', value: 10, name: '10' },
+      { id: 'money10_3_4', type: 'money', value: 10, name: '10' },
+      { id: 'money0_3_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_3_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_3_1', type: 'money', value: 50, name: '50' }
+    ],
+    money: 90,
   },
   {
     id: 'player4',
     name: 'Darla',
-    hand: [animalCards[5], moneyCards[5]],
-    money: 200,
+    hand: [
+      { id: 'money10_4_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_4_2', type: 'money', value: 10, name: '10' },
+      { id: 'money10_4_3', type: 'money', value: 10, name: '10' },
+      { id: 'money10_4_4', type: 'money', value: 10, name: '10' },
+      { id: 'money0_4_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_4_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_4_1', type: 'money', value: 50, name: '50' }
+    ],
+    money: 90,
   },
 ];
 

@@ -16,16 +16,36 @@ const Lobby: React.FC<LobbyProps> = ({
 }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
   const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [nameError, setNameError] = useState('');
 
   const handleAddPlayer = () => {
-    if (newPlayerName.trim() && onAddPlayer) {
-      onAddPlayer(newPlayerName.trim());
+    const trimmedName = newPlayerName.trim();
+    
+    if (!trimmedName) {
+      setNameError('Player name cannot be empty');
+      return;
+    }
+    
+    // Check for duplicate names (case-insensitive)
+    const isDuplicate = players.some(player => 
+      player.name.toLowerCase() === trimmedName.toLowerCase()
+    );
+    
+    if (isDuplicate) {
+      setNameError('A player with this name already exists');
+      return;
+    }
+    
+    if (onAddPlayer) {
+      onAddPlayer(trimmedName);
       setNewPlayerName('');
       setShowAddPlayer(false);
+      setNameError('');
     }
   };
 
   const canStartGame = players.length >= 2;
+  const canAddPlayer = players.length < 6;
 
   return (
     <div style={{
@@ -98,7 +118,7 @@ const Lobby: React.FC<LobbyProps> = ({
           </div>
         )}
 
-        {!showAddPlayer ? (
+        {canAddPlayer && !showAddPlayer && (
           <button
             onClick={() => setShowAddPlayer(true)}
             style={{
@@ -115,17 +135,22 @@ const Lobby: React.FC<LobbyProps> = ({
           >
             Add Player
           </button>
-        ) : (
+        )}
+
+        {canAddPlayer && showAddPlayer && (
           <div style={{ marginTop: '16px' }}>
             <input
               type="text"
               value={newPlayerName}
-              onChange={(e) => setNewPlayerName(e.target.value)}
+              onChange={(e) => {
+                setNewPlayerName(e.target.value);
+                setNameError(''); // Clear error when user types
+              }}
               placeholder="Enter player name"
               style={{
                 padding: '8px',
                 borderRadius: '4px',
-                border: '1px solid #ccc',
+                border: nameError ? '1px solid #f44336' : '1px solid #ccc',
                 marginRight: '8px',
                 width: '200px',
                 fontSize: '14px'
@@ -153,6 +178,7 @@ const Lobby: React.FC<LobbyProps> = ({
               onClick={() => {
                 setShowAddPlayer(false);
                 setNewPlayerName('');
+                setNameError('');
               }}
               style={{
                 padding: '8px 16px',
@@ -167,6 +193,29 @@ const Lobby: React.FC<LobbyProps> = ({
             >
               Cancel
             </button>
+            {nameError && (
+              <div style={{
+                color: '#f44336',
+                fontSize: '12px',
+                marginTop: '4px',
+                fontWeight: 'bold'
+              }}>
+                {nameError}
+              </div>
+            )}
+          </div>
+        )}
+
+        {!canAddPlayer && (
+          <div style={{
+            textAlign: 'center',
+            marginTop: '12px',
+            color: '#FF9800',
+            fontStyle: 'italic',
+            fontSize: '14px',
+            fontWeight: 'bold'
+          }}>
+            Maximum of 6 players reached
           </div>
         )}
       </div>

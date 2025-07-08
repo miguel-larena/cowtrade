@@ -1,4 +1,4 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, useNavigate } from 'react-router-dom';
 import { useGameState } from './hooks/useGameState';
 import Lobby from './pages/Lobby';
 import GameBoard from './pages/GameBoard';
@@ -8,13 +8,22 @@ function App() {
     gameState,
     currentPlayerId,
     addPlayer,
-    startGame
+    startGame,
+    changePhase,
+    nextTurn,
+    handlePlaceBid,
+    handleWinAuction,
+    handleTradeCards,
+    endGame,
+    isCurrentPlayerTurn
   } = useGameState();
+
+  const navigate = useNavigate();
 
   const handleStartGame = () => {
     startGame();
-    // In a real app, you might navigate to the game board here
-    console.log('Starting game with players:', gameState.players);
+    // Navigate to the game board
+    navigate('/game');
   };
 
   return (
@@ -41,7 +50,20 @@ function App() {
             currentPlayerId={currentPlayerId}
           />
         } />
-        <Route path="/game" element={<GameBoard />} />
+        <Route path="/game" element={
+          <GameBoard 
+            gameState={gameState}
+            currentPlayerId={currentPlayerId}
+            onPhaseChange={changePhase}
+            onNextTurn={nextTurn}
+            onPlaceBid={handlePlaceBid}
+            onWinAuction={handleWinAuction}
+            onTradeCards={handleTradeCards}
+            onStartGame={startGame}
+            onEndGame={endGame}
+            isCurrentPlayerTurn={isCurrentPlayerTurn}
+          />
+        } />
       </Routes>
     </div>
   )

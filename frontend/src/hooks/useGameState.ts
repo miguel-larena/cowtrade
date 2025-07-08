@@ -52,11 +52,22 @@ export const useGameState = () => {
   // Player management
   const addPlayer = useCallback((name: string) => {
     setGameState(prev => {
+      // Create starting hand: 4 tens, 2 zeros, 1 fifty
+      const startingHand = [
+        { id: `money10_${prev.players.length + 1}_1`, type: 'money' as const, value: 10, name: '10' },
+        { id: `money10_${prev.players.length + 1}_2`, type: 'money' as const, value: 10, name: '10' },
+        { id: `money10_${prev.players.length + 1}_3`, type: 'money' as const, value: 10, name: '10' },
+        { id: `money10_${prev.players.length + 1}_4`, type: 'money' as const, value: 10, name: '10' },
+        { id: `money0_${prev.players.length + 1}_1`, type: 'money' as const, value: 0, name: '0' },
+        { id: `money0_${prev.players.length + 1}_2`, type: 'money' as const, value: 0, name: '0' },
+        { id: `money50_${prev.players.length + 1}_1`, type: 'money' as const, value: 50, name: '50' }
+      ];
+
       const newPlayer: Player = {
         id: `player${prev.players.length + 1}`,
         name,
-        hand: [],
-        money: 100
+        hand: startingHand,
+        money: 90
       };
       return {
         ...prev,
