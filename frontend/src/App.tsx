@@ -1,40 +1,43 @@
 import { Routes, Route, Link } from 'react-router-dom';
-import { useState } from 'react';
+import { useGameState } from './hooks/useGameState';
 import Lobby from './pages/Lobby';
 import GameBoard from './pages/GameBoard';
-import type { Player } from './types';
 
 function App() {
-  const [players, setPlayers] = useState<Player[]>([]);
-  const [currentPlayerId] = useState<string>('player1');
-
-  const handleAddPlayer = (name: string) => {
-    const newPlayer: Player = {
-      id: `player${players.length + 1}`,
-      name,
-      hand: [],
-      money: 100
-    };
-    setPlayers(prev => [...prev, newPlayer]);
-  };
+  const {
+    gameState,
+    currentPlayerId,
+    addPlayer,
+    startGame
+  } = useGameState();
 
   const handleStartGame = () => {
-    // For now, just navigate to game board
-    // In a real app, you'd initialize the game state here
-    console.log('Starting game with players:', players);
+    startGame();
+    // In a real app, you might navigate to the game board here
+    console.log('Starting game with players:', gameState.players);
   };
 
   return (
     <div>
-      <nav>
-        <Link to="/">Lobby</Link> | <Link to="/game">Game Board</Link>
+      <nav style={{
+        padding: '16px',
+        backgroundColor: '#f5f5f5',
+        borderBottom: '1px solid #ddd',
+        marginBottom: '20px'
+      }}>
+        <Link to="/" style={{ marginRight: '16px', textDecoration: 'none', color: '#2196F3' }}>
+          Lobby
+        </Link>
+        <Link to="/game" style={{ textDecoration: 'none', color: '#2196F3' }}>
+          Game Board
+        </Link>
       </nav>
       <Routes>
         <Route path="/" element={
           <Lobby 
-            players={players}
+            players={gameState.players}
             onStartGame={handleStartGame}
-            onAddPlayer={handleAddPlayer}
+            onAddPlayer={addPlayer}
             currentPlayerId={currentPlayerId}
           />
         } />
