@@ -32,12 +32,14 @@ const Lobby: React.FC<LobbyProps> = ({
       maxWidth: '800px',
       margin: '0 auto',
       padding: '20px',
-      fontFamily: 'Arial, sans-serif'
+      fontFamily: 'Arial, sans-serif',
+      color: '#333'
     }}>
       <h1 style={{ 
         textAlign: 'center', 
         color: '#2E7D32',
-        marginBottom: '30px'
+        marginBottom: '30px',
+        fontSize: '32px'
       }}>
         Kuhhandel - Game Lobby
       </h1>
@@ -49,14 +51,15 @@ const Lobby: React.FC<LobbyProps> = ({
         marginBottom: '20px',
         backgroundColor: '#f9f9f9'
       }}>
-        <h2 style={{ margin: '0 0 16px 0' }}>Players ({players.length})</h2>
+        <h2 style={{ margin: '0 0 16px 0', color: '#333' }}>Players ({players.length})</h2>
         
         {players.length === 0 ? (
           <div style={{ 
-            color: '#666', 
+            color: '#555', 
             fontStyle: 'italic',
             textAlign: 'center',
-            padding: '20px'
+            padding: '20px',
+            fontSize: '16px'
           }}>
             No players yet. Add some players to start!
           </div>
@@ -73,7 +76,7 @@ const Lobby: React.FC<LobbyProps> = ({
                 borderRadius: '4px'
               }}>
                 <div>
-                  <span style={{ fontWeight: 'bold' }}>
+                  <span style={{ fontWeight: 'bold', color: '#333' }}>
                     {index + 1}. {player.name}
                   </span>
                   {player.id === currentPlayerId && (
@@ -87,7 +90,7 @@ const Lobby: React.FC<LobbyProps> = ({
                     </span>
                   )}
                 </div>
-                <div style={{ fontSize: '14px', color: '#666' }}>
+                <div style={{ fontSize: '14px', color: '#555', fontWeight: 'bold' }}>
                   Money: ${player.money}
                 </div>
               </div>
@@ -105,7 +108,9 @@ const Lobby: React.FC<LobbyProps> = ({
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: 'pointer'
+              cursor: 'pointer',
+              fontSize: '14px',
+              fontWeight: 'bold'
             }}
           >
             Add Player
@@ -122,7 +127,8 @@ const Lobby: React.FC<LobbyProps> = ({
                 borderRadius: '4px',
                 border: '1px solid #ccc',
                 marginRight: '8px',
-                width: '200px'
+                width: '200px',
+                fontSize: '14px'
               }}
               onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
             />
@@ -136,7 +142,9 @@ const Lobby: React.FC<LobbyProps> = ({
                 border: 'none',
                 borderRadius: '4px',
                 cursor: newPlayerName.trim() ? 'pointer' : 'not-allowed',
-                marginRight: '8px'
+                marginRight: '8px',
+                fontSize: '14px',
+                fontWeight: 'bold'
               }}
             >
               Add
@@ -152,7 +160,9 @@ const Lobby: React.FC<LobbyProps> = ({
                 color: 'white',
                 border: 'none',
                 borderRadius: '4px',
-                cursor: 'pointer'
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
               }}
             >
               Cancel
@@ -184,8 +194,9 @@ const Lobby: React.FC<LobbyProps> = ({
         <div style={{
           textAlign: 'center',
           marginTop: '16px',
-          color: '#666',
-          fontStyle: 'italic'
+          color: '#555',
+          fontStyle: 'italic',
+          fontSize: '16px'
         }}>
           Add at least 2 players to start the game
         </div>
