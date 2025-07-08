@@ -237,8 +237,68 @@ export const useGameState = () => {
           };
         }
 
-        // Calculate payment - find the best combination of money cards
+        // Check if this was a bluff (winning bidder can't afford the bid)
         const moneyCards = winningBidder.hand.filter(card => card.type === 'money');
+        const totalMoney = moneyCards.reduce((sum, card) => sum + card.value, 0);
+        
+        if (totalMoney < prev.currentBid) {
+          // Bluff detected - bluffer is disqualified
+          console.log('Bluff detected - bluffer disqualified:', {
+            bidder: winningBidder.name,
+            bidAmount: prev.currentBid,
+            availableMoney: totalMoney
+          });
+          
+          const newDisqualifiedPlayers = [...prev.disqualifiedPlayers, winningBidder.id];
+          
+          // Check if all bidders are now disqualified
+          const bidders = prev.players.filter(player => player.id !== prev.auctioneer);
+          const allBiddersDisqualified = bidders.every(bidder => newDisqualifiedPlayers.includes(bidder.id));
+          
+          if (allBiddersDisqualified) {
+            // All bidders disqualified - auctioneer takes card for free
+            if (prev.auctionCard) {
+              console.log('All bidders disqualified - auctioneer takes card for free');
+              
+              const updatedPlayers = prev.players.map(player => {
+                if (player.id === auctioneer.id) {
+                  return {
+                    ...player,
+                    hand: [...player.hand, prev.auctionCard!]
+                  };
+                }
+                return player;
+              });
+              
+              return {
+                ...prev,
+                players: updatedPlayers,
+                disqualifiedPlayers: newDisqualifiedPlayers,
+                auctionState: 'ended',
+                currentBid: 0,
+                currentBidder: null,
+                auctionCard: undefined,
+                auctioneer: null,
+                auctionEndTime: undefined
+              };
+            }
+          }
+          
+          // Restart auction with the bluffing bidder disqualified
+          const newEndTime = Date.now() + 60000; // 60 seconds (1 minute)
+          
+          return {
+            ...prev,
+            disqualifiedPlayers: newDisqualifiedPlayers,
+            auctionState: 'in_progress',
+            currentBid: 0,
+            currentBidder: null,
+            auctionEndTime: newEndTime
+            // Keep the same auctionCard and auctioneer
+          };
+        }
+        
+        // Normal transaction - winning bidder can afford the bid
         const requiredAmount = prev.currentBid;
         
         // Use utility to select payment cards
@@ -352,67 +412,21 @@ export const useGameState = () => {
       
       // If the winning bidder bluffed and can't afford the bid
       if (totalMoney < prev.currentBid) {
-        console.log('Bluffing bidder detected:', {
+        console.log('Bluffing bidder detected - entering match bid phase:', {
           bidder: winningBidder.name,
           bidAmount: prev.currentBid,
           availableMoney: totalMoney,
           bluffAmount: prev.currentBid - totalMoney
         });
         
-        // Add the bluffing bidder to the disqualified list
-        const newDisqualifiedPlayers = [...prev.disqualifiedPlayers, winningBidder.id];
-        
-        // Check if all bidders are now disqualified
-        const bidders = prev.players.filter(player => player.id !== prev.auctioneer);
-        const allBiddersDisqualified = bidders.every(bidder => newDisqualifiedPlayers.includes(bidder.id));
-        
-        if (allBiddersDisqualified) {
-          // All bidders disqualified - auctioneer takes card for free
-          const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
-          
-          if (auctioneer && prev.auctionCard) {
-            console.log('All bidders disqualified - auctioneer takes card for free:', {
-              auctioneer: auctioneer.name,
-              card: prev.auctionCard.name,
-              disqualifiedPlayers: newDisqualifiedPlayers
-            });
-            
-            // Update auctioneer to receive the card
-            const updatedPlayers = prev.players.map(player => {
-              if (player.id === auctioneer.id) {
-                return {
-                  ...player,
-                  hand: [...player.hand, prev.auctionCard!]
-                };
-              }
-              return player;
-            });
-            
-            return {
-              ...prev,
-              players: updatedPlayers,
-              disqualifiedPlayers: newDisqualifiedPlayers,
-              auctionState: 'ended',
-              currentBid: 0,
-              currentBidder: null,
-              auctionCard: undefined,
-              auctioneer: null,
-              auctionEndTime: undefined
-            };
-          }
-        }
-        
-        // Restart auction with the same card, same auctioneer, but with the bluffing bidder disqualified
-        const newEndTime = Date.now() + 60000; // 60 seconds (1 minute)
-        
+        // Go to match bid phase - auctioneer can choose to match the bluff
+        // If auctioneer matches, the bluff is successful and auctioneer pays the bluffer
+        // If auctioneer doesn't match, the bluff is detected and bluffer is disqualified
         return {
           ...prev,
-          disqualifiedPlayers: newDisqualifiedPlayers,
-          auctionState: 'in_progress',
-          currentBid: 0,
-          currentBidder: null,
-          auctionEndTime: newEndTime
-          // Keep the same auctionCard and auctioneer, players keep their hands intact
+          auctionState: 'match_bid_phase',
+          auctionEndTime: Date.now() + 5000 // 5 seconds for match bid phase
+          // Don't update players yet - wait for match bid decision or timeout
         };
       }
 

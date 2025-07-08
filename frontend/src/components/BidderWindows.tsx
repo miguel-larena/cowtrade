@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import type { GameState } from '../types';
 
 interface BidderWindowsProps {
@@ -11,6 +11,19 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
   onPlaceBid
 }) => {
   const [bidAmounts, setBidAmounts] = useState<{ [playerId: string]: number }>({});
+
+  // Reset bid amounts when auction starts or restarts
+  useEffect(() => {
+    if (gameState.auctionState === 'in_progress' && gameState.currentBid === 0) {
+      // Reset all bid amounts to default 10 when auction starts
+      const bidders = gameState.players.filter(player => player.id !== gameState.auctioneer);
+      const resetBidAmounts: { [playerId: string]: number } = {};
+      bidders.forEach(bidder => {
+        resetBidAmounts[bidder.id] = 10;
+      });
+      setBidAmounts(resetBidAmounts);
+    }
+  }, [gameState.auctionState, gameState.currentBid, gameState.players, gameState.auctioneer]);
 
   const handleBidChange = (playerId: string, value: string) => {
     const amount = parseInt(value) || 0;
@@ -106,30 +119,9 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
               padding: '16px',
               backgroundColor: isCurrentBidder ? '#f0f8f0' : 'white',
               boxShadow: isCurrentBidder ? '0 2px 8px rgba(76, 175, 80, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)',
-              opacity: isDisqualified ? 0.6 : 1,
               position: 'relative'
             }}>
-              {/* Disqualified overlay */}
-              {isDisqualified && (
-                <div style={{
-                  position: 'absolute',
-                  top: 0,
-                  left: 0,
-                  width: '100%',
-                  height: '100%',
-                  background: 'rgba(255,87,34,0.15)',
-                  zIndex: 2,
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  color: '#FF5722',
-                  fontSize: '16px',
-                  pointerEvents: 'none'
-                }}>
-                  
-                </div>
-              )}
+
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -251,15 +243,16 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                     </span>
                   )}
                 </div>
+                
+                {/* Show all cards for disqualified players, first 5 for others */}
                 <div style={{
                   display: 'flex',
                   flexWrap: 'wrap',
                   gap: '4px',
-                  maxHeight: '60px',
-                  overflow: 'hidden'
+                  maxHeight: isDisqualified ? 'none' : '60px',
+                  overflow: isDisqualified ? 'visible' : 'hidden'
                 }}>
-                  {player.hand.slice(0, 5).map((card) => {
-                    const isDisqualified = gameState.disqualifiedPlayers.includes(player.id);
+                  {(isDisqualified ? player.hand : player.hand.slice(0, 5)).map((card) => {
                     const showValue = card.type === 'animal' || isDisqualified;
                     
                     return (
@@ -280,7 +273,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                       </div>
                     );
                   })}
-                  {player.hand.length > 5 && (
+                  {!isDisqualified && player.hand.length > 5 && (
                     <div style={{
                       width: '20px',
                       height: '30px',

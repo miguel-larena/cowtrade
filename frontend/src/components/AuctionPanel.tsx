@@ -218,35 +218,39 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             You can match the highest bid of ${gameState.currentBid} to keep the card
           </div>
           {currentPlayer && currentPlayer.money >= gameState.currentBid ? (
-            <button
-              onClick={onMatchBid}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#FF5722',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold',
-                width: '100%'
-              }}
-            >
-              Match Bid (${gameState.currentBid})
-            </button>
+            <div style={{ textAlign: 'center' }}>
+              <button
+                onClick={onMatchBid}
+                style={{
+                  padding: '12px 24px',
+                  backgroundColor: '#FF5722',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '16px',
+                  fontWeight: 'bold',
+                  minWidth: '200px'
+                }}
+              >
+                Match Bid (${gameState.currentBid})
+              </button>
+            </div>
           ) : (
-            <div style={{
-              padding: '12px 24px',
-              backgroundColor: '#ccc',
-              color: '#666',
-              border: 'none',
-              borderRadius: '4px',
-              fontSize: '16px',
-              fontWeight: 'bold',
-              width: '100%',
-              textAlign: 'center'
-            }}>
-              Cannot Match Bid - Not Enough Money (You have ${currentPlayer?.money || 0})
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                padding: '12px 24px',
+                backgroundColor: '#ccc',
+                color: '#666',
+                border: '1px solid #999',
+                borderRadius: '4px',
+                fontSize: '14px',
+                fontWeight: 'bold',
+                display: 'inline-block',
+                maxWidth: '300px'
+              }}>
+                Cannot Match Bid - Not Enough Money (You have ${currentPlayer?.money || 0})
+              </div>
             </div>
           )}
         </div>

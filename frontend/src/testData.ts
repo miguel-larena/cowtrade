@@ -83,11 +83,12 @@ export const testPlayers: Player[] = [
       { id: 'money10_1_2', type: 'money', value: 10, name: '10' },
       { id: 'money10_1_3', type: 'money', value: 10, name: '10' },
       { id: 'money10_1_4', type: 'money', value: 10, name: '10' },
+      { id: 'money10_1_5', type: 'money', value: 10, name: '10' },
       { id: 'money0_1_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_1_2', type: 'money', value: 0, name: '0' },
       { id: 'money50_1_1', type: 'money', value: 50, name: '50' }
     ],
-    money: 90,
+    money: 100,
   },
   {
     id: 'player2',
