@@ -9,13 +9,20 @@ export const useGameState = () => {
 
   // Phase management
   const changePhase = useCallback((newPhase: GamePhase) => {
-    setGameState(prev => ({
-      ...prev,
-      currentPhase: newPhase,
-      currentBid: 0,
-      currentBidder: null,
-      auctionCard: newPhase === 'auction' ? prev.deck[Math.floor(Math.random() * prev.deck.length)] : undefined
-    }));
+    setGameState(prev => {
+      // Filter animal cards for auction selection
+      const animalCards = prev.deck.filter(card => card.type === 'animal');
+      
+      return {
+        ...prev,
+        currentPhase: newPhase,
+        currentBid: 0,
+        currentBidder: null,
+        auctionCard: newPhase === 'auction' && animalCards.length > 0 
+          ? animalCards[Math.floor(Math.random() * animalCards.length)] 
+          : undefined
+      };
+    });
   }, []);
 
   // Turn management
@@ -85,12 +92,19 @@ export const useGameState = () => {
 
   // Game flow actions
   const startGame = useCallback(() => {
-    setGameState(prev => ({
-      ...prev,
-      currentPhase: 'auction',
-      currentTurn: prev.players[0]?.id || 'player1',
-      auctionCard: prev.deck[Math.floor(Math.random() * prev.deck.length)]
-    }));
+    setGameState(prev => {
+      // Filter animal cards for auction selection
+      const animalCards = prev.deck.filter(card => card.type === 'animal');
+      
+      return {
+        ...prev,
+        currentPhase: 'auction',
+        currentTurn: prev.players[0]?.id || 'player1',
+        auctionCard: animalCards.length > 0 
+          ? animalCards[Math.floor(Math.random() * animalCards.length)]
+          : undefined
+      };
+    });
   }, []);
 
   const endGame = useCallback(() => {

@@ -1,17 +1,66 @@
 import type { Player, Card, GameState } from './types';
 
-// Test animal cards
+// Test animal cards (4 of each type = 40 total)
 export const animalCards: Card[] = [
-  { id: 'chicken', type: 'animal', value: 10, name: 'Chicken' },
-  { id: 'goose', type: 'animal', value: 40, name: 'Goose' },
-  { id: 'cat', type: 'animal', value: 90, name: 'Cat' },
-  { id: 'dog', type: 'animal', value: 160, name: 'Dog' },
-  { id: 'sheep', type: 'animal', value: 250, name: 'Sheep' },
-  { id: 'goat', type: 'animal', value: 350, name: 'Goat' },
-  { id: 'donkey', type: 'animal', value: 500, name: 'Donkey' },
-  { id: 'pig', type: 'animal', value: 650, name: 'Pig' },
-  { id: 'bull', type: 'animal', value: 800, name: 'Bull' },
-  { id: 'cow', type: 'animal', value: 1000, name: 'Cow' },
+  // Chickens (4)
+  { id: 'chicken_1', type: 'animal', value: 10, name: 'Chicken' },
+  { id: 'chicken_2', type: 'animal', value: 10, name: 'Chicken' },
+  { id: 'chicken_3', type: 'animal', value: 10, name: 'Chicken' },
+  { id: 'chicken_4', type: 'animal', value: 10, name: 'Chicken' },
+  
+  // Geese (4)
+  { id: 'goose_1', type: 'animal', value: 40, name: 'Goose' },
+  { id: 'goose_2', type: 'animal', value: 40, name: 'Goose' },
+  { id: 'goose_3', type: 'animal', value: 40, name: 'Goose' },
+  { id: 'goose_4', type: 'animal', value: 40, name: 'Goose' },
+  
+  // Cats (4)
+  { id: 'cat_1', type: 'animal', value: 90, name: 'Cat' },
+  { id: 'cat_2', type: 'animal', value: 90, name: 'Cat' },
+  { id: 'cat_3', type: 'animal', value: 90, name: 'Cat' },
+  { id: 'cat_4', type: 'animal', value: 90, name: 'Cat' },
+  
+  // Dogs (4)
+  { id: 'dog_1', type: 'animal', value: 160, name: 'Dog' },
+  { id: 'dog_2', type: 'animal', value: 160, name: 'Dog' },
+  { id: 'dog_3', type: 'animal', value: 160, name: 'Dog' },
+  { id: 'dog_4', type: 'animal', value: 160, name: 'Dog' },
+  
+  // Sheep (4)
+  { id: 'sheep_1', type: 'animal', value: 250, name: 'Sheep' },
+  { id: 'sheep_2', type: 'animal', value: 250, name: 'Sheep' },
+  { id: 'sheep_3', type: 'animal', value: 250, name: 'Sheep' },
+  { id: 'sheep_4', type: 'animal', value: 250, name: 'Sheep' },
+  
+  // Goats (4)
+  { id: 'goat_1', type: 'animal', value: 350, name: 'Goat' },
+  { id: 'goat_2', type: 'animal', value: 350, name: 'Goat' },
+  { id: 'goat_3', type: 'animal', value: 350, name: 'Goat' },
+  { id: 'goat_4', type: 'animal', value: 350, name: 'Goat' },
+  
+  // Donkeys (4)
+  { id: 'donkey_1', type: 'animal', value: 500, name: 'Donkey' },
+  { id: 'donkey_2', type: 'animal', value: 500, name: 'Donkey' },
+  { id: 'donkey_3', type: 'animal', value: 500, name: 'Donkey' },
+  { id: 'donkey_4', type: 'animal', value: 500, name: 'Donkey' },
+  
+  // Pigs (4)
+  { id: 'pig_1', type: 'animal', value: 650, name: 'Pig' },
+  { id: 'pig_2', type: 'animal', value: 650, name: 'Pig' },
+  { id: 'pig_3', type: 'animal', value: 650, name: 'Pig' },
+  { id: 'pig_4', type: 'animal', value: 650, name: 'Pig' },
+  
+  // Bulls (4)
+  { id: 'bull_1', type: 'animal', value: 800, name: 'Bull' },
+  { id: 'bull_2', type: 'animal', value: 800, name: 'Bull' },
+  { id: 'bull_3', type: 'animal', value: 800, name: 'Bull' },
+  { id: 'bull_4', type: 'animal', value: 800, name: 'Bull' },
+  
+  // Cows (4)
+  { id: 'cow_1', type: 'animal', value: 1000, name: 'Cow' },
+  { id: 'cow_2', type: 'animal', value: 1000, name: 'Cow' },
+  { id: 'cow_3', type: 'animal', value: 1000, name: 'Cow' },
+  { id: 'cow_4', type: 'animal', value: 1000, name: 'Cow' },
 ];
 
 // Test money cards
@@ -87,10 +136,10 @@ export const testPlayers: Player[] = [
 // Test game state
 export const testGameState: GameState = {
   players: testPlayers,
-  deck: [...animalCards, ...moneyCards],
+  deck: [...animalCards, ...moneyCards], // Full deck for reference
   currentTurn: 'player1',
   currentPhase: 'auction',
-  auctionCard: animalCards[3],
+  auctionCard: animalCards[0], // Start with first animal card
   currentBid: 0,
   currentBidder: null,
 };

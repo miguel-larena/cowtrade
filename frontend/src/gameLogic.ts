@@ -31,12 +31,17 @@ export const winAuction = (gameState: GameState): GameState => {
     return player;
   });
 
+  // Filter animal cards for next auction selection
+  const animalCards = gameState.deck.filter(card => card.type === 'animal');
+
   return {
     ...gameState,
     players: updatedPlayers,
     currentBid: 0,
     currentBidder: null,
-    auctionCard: gameState.deck[Math.floor(Math.random() * gameState.deck.length)],
+    auctionCard: animalCards.length > 0 
+      ? animalCards[Math.floor(Math.random() * animalCards.length)]
+      : undefined,
   };
 };
 
