@@ -46,6 +46,101 @@ export const useGameState = () => {
     setGameState(prev => winAuction(prev));
   }, []);
 
+  // New auction functions
+  const startAuction = useCallback((auctioneerId: string) => {
+    setGameState(prev => {
+      // Check if it's the player's turn
+      if (prev.currentTurn !== auctioneerId) {
+        return prev; // Not their turn
+      }
+
+      // Check if auction is already in progress
+      if (prev.auctionState === 'in_progress') {
+        return prev; // Auction already running
+      }
+
+      // Filter animal cards for auction selection
+      const animalCards = prev.deck.filter(card => card.type === 'animal');
+      
+      if (animalCards.length === 0) {
+        return prev; // No animal cards left
+      }
+
+      // Select random animal card
+      const selectedCard = animalCards[Math.floor(Math.random() * animalCards.length)];
+      
+      // Set auction end time (15 seconds from now)
+      const endTime = Date.now() + 15000; // 15 seconds
+
+      return {
+        ...prev,
+        auctionState: 'in_progress',
+        auctionCard: selectedCard,
+        auctioneer: auctioneerId,
+        auctionEndTime: endTime,
+        currentBid: 0,
+        currentBidder: null
+      };
+    });
+  }, []);
+
+  const placeBidInAuction = useCallback((bidderId: string, amount: number) => {
+    setGameState(prev => {
+      console.log('placeBidInAuction called:', {
+        bidderId,
+        amount,
+        currentBid: prev.currentBid,
+        auctionState: prev.auctionState,
+        auctioneer: prev.auctioneer
+      });
+      
+      // Check if auction is in progress
+      if (prev.auctionState !== 'in_progress') {
+        console.log('Auction not in progress');
+        return prev;
+      }
+
+      // Check if bidder is the auctioneer
+      if (bidderId === prev.auctioneer) {
+        console.log('Bidder is auctioneer');
+        return prev; // Auctioneer cannot bid
+      }
+
+      // Check if bid is valid (multiple of 10 and higher than current bid)
+      if (amount % 10 !== 0 || amount <= prev.currentBid) {
+        console.log('Invalid bid:', { amount, currentBid: prev.currentBid, isMultipleOf10: amount % 10 === 0, isHigher: amount > prev.currentBid });
+        return prev; // Invalid bid
+      }
+
+      // Check if bidder has enough money
+      const bidder = prev.players.find(p => p.id === bidderId);
+      if (!bidder || bidder.money < amount) {
+        console.log('Not enough money:', { bidderMoney: bidder?.money, amount });
+        return prev; // Not enough money
+      }
+
+      console.log('Bid accepted:', { bidderId, amount });
+      return {
+        ...prev,
+        currentBid: amount,
+        currentBidder: bidderId
+      };
+    });
+  }, []);
+
+  const endAuction = useCallback(() => {
+    setGameState(prev => {
+      if (prev.auctionState !== 'in_progress') {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        auctionState: 'ended'
+      };
+    });
+  }, []);
+
   // Trading actions
   const handleTradeCards = useCallback((
     player1Id: string,
@@ -93,16 +188,11 @@ export const useGameState = () => {
   // Game flow actions
   const startGame = useCallback(() => {
     setGameState(prev => {
-      // Filter animal cards for auction selection
-      const animalCards = prev.deck.filter(card => card.type === 'animal');
-      
       return {
         ...prev,
         currentPhase: 'auction',
         currentTurn: prev.players[0]?.id || 'player1',
-        auctionCard: animalCards.length > 0 
-          ? animalCards[Math.floor(Math.random() * animalCards.length)]
-          : undefined
+        auctionCard: undefined // No auction card at game start
       };
     });
   }, []);
@@ -142,6 +232,11 @@ export const useGameState = () => {
     removePlayer,
     startGame,
     endGame,
+    
+    // New auction actions
+    startAuction,
+    placeBidInAuction,
+    endAuction,
     
     // Utilities
     getCurrentPlayer,

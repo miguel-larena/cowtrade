@@ -15,7 +15,10 @@ function App() {
     handleWinAuction,
     handleTradeCards,
     endGame,
-    isCurrentPlayerTurn
+    isCurrentPlayerTurn,
+    startAuction,
+    placeBidInAuction,
+    endAuction
   } = useGameState();
 
   const navigate = useNavigate();
@@ -62,6 +65,9 @@ function App() {
             onStartGame={startGame}
             onEndGame={endGame}
             isCurrentPlayerTurn={isCurrentPlayerTurn}
+            onStartAuction={startAuction}
+            onPlaceBidInAuction={placeBidInAuction}
+            onEndAuction={endAuction}
           />
         } />
       </Routes>

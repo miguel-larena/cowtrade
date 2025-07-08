@@ -3,6 +3,7 @@ import PlayerHand from '../components/PlayerHand';
 import AuctionPanel from '../components/AuctionPanel';
 import TradingPanel from '../components/TradingPanel';
 import GameControls from '../components/GameControls';
+import BidderWindows from '../components/BidderWindows';
 import type { GameState, GamePhase } from '../types';
 
 interface GameBoardProps {
@@ -16,6 +17,9 @@ interface GameBoardProps {
   onStartGame: () => void;
   onEndGame: () => void;
   isCurrentPlayerTurn: (playerId: string) => boolean;
+  onStartAuction: (auctioneerId: string) => void;
+  onPlaceBidInAuction: (bidderId: string, amount: number) => void;
+  onEndAuction: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -23,13 +27,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
   currentPlayerId,
   onPhaseChange,
   onNextTurn,
-  onPlaceBid,
-  onWinAuction,
   onTradeCards,
   onStartGame,
   onEndGame,
-  isCurrentPlayerTurn
+  isCurrentPlayerTurn,
+  onStartAuction,
+  onPlaceBidInAuction,
+  onEndAuction
 }) => {
+
   const renderPhaseContent = () => {
     switch (gameState.currentPhase) {
       case 'lobby':
@@ -50,12 +56,19 @@ const GameBoard: React.FC<GameBoardProps> = ({
       
       case 'auction':
         return (
-          <AuctionPanel
-            gameState={gameState}
-            currentPlayerId={currentPlayerId}
-            onPlaceBid={(amount) => onPlaceBid(currentPlayerId, amount)}
-            onWinAuction={onWinAuction}
-          />
+          <div>
+            <AuctionPanel
+              gameState={gameState}
+              currentPlayerId={currentPlayerId}
+              onStartAuction={onStartAuction}
+              onPlaceBid={onPlaceBidInAuction}
+              onEndAuction={onEndAuction}
+            />
+            <BidderWindows
+              gameState={gameState}
+              onPlaceBid={onPlaceBidInAuction}
+            />
+          </div>
         );
       
       case 'trade':

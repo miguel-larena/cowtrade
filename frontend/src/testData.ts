@@ -139,7 +139,10 @@ export const testGameState: GameState = {
   deck: [...animalCards, ...moneyCards], // Full deck for reference
   currentTurn: 'player1',
   currentPhase: 'auction',
-  auctionCard: animalCards[0], // Start with first animal card
+  auctionCard: undefined, // No auction card initially
   currentBid: 0,
   currentBidder: null,
+  auctionState: 'none', // No auction in progress initially
+  auctioneer: null, // No auctioneer initially
+  auctionEndTime: undefined, // No end time initially
 };
