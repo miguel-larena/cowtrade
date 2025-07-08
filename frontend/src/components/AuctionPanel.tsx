@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { GameState, Card } from '../types';
+import type { GameState } from '../types';
 import CardComponent from './Card';
 
 interface AuctionPanelProps {
@@ -30,7 +30,6 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
     }
   };
 
-  const isCurrentPlayerBidding = gameState.currentBidder === currentPlayerId;
   const canBid = currentPlayer && bidAmount > gameState.currentBid && bidAmount <= currentPlayer.money;
 
   return (
