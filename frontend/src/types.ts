@@ -1,6 +1,6 @@
 export type CardType = 'animal' | 'money';
 export type GamePhase = 'lobby' | 'auction' | 'trade' | 'end';
-export type AuctionState = 'none' | 'in_progress' | 'ended';
+export type AuctionState = 'none' | 'in_progress' | 'ended' | 'match_bid_phase';
 
 export interface Card {
   id: string;
@@ -27,4 +27,5 @@ export interface GameState {
   auctionState: AuctionState;
   auctioneer: string | null;
   auctionEndTime?: number; // timestamp when auction ends
+  disqualifiedPlayers: string[]; // list of player IDs who are disqualified from current auction
 }

@@ -18,7 +18,8 @@ function App() {
     isCurrentPlayerTurn,
     startAuction,
     placeBidInAuction,
-    endAuction
+    endAuction,
+    matchBid
   } = useGameState();
 
   const navigate = useNavigate();
@@ -68,6 +69,7 @@ function App() {
             onStartAuction={startAuction}
             onPlaceBidInAuction={placeBidInAuction}
             onEndAuction={endAuction}
+            onMatchBid={matchBid}
           />
         } />
       </Routes>

@@ -8,6 +8,7 @@ interface AuctionPanelProps {
   onStartAuction: (auctioneerId: string) => void;
   onPlaceBid: (bidderId: string, amount: number) => void;
   onEndAuction: () => void;
+  onMatchBid: () => void;
 }
 
 const AuctionPanel: React.FC<AuctionPanelProps> = ({
@@ -15,7 +16,8 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   currentPlayerId,
   onStartAuction,
   onPlaceBid,
-  onEndAuction
+  onEndAuction,
+  onMatchBid
 }) => {
   const [bidAmount, setBidAmount] = useState<number>(10);
   const [timeLeft, setTimeLeft] = useState<number>(0);
@@ -24,7 +26,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
   // Timer effect
   useEffect(() => {
-    if (gameState.auctionState === 'in_progress' && gameState.auctionEndTime) {
+    if ((gameState.auctionState === 'in_progress' || gameState.auctionState === 'match_bid_phase') && gameState.auctionEndTime) {
       const interval = setInterval(() => {
         const remaining = Math.max(0, Math.ceil((gameState.auctionEndTime! - Date.now()) / 1000));
         setTimeLeft(remaining);
@@ -78,10 +80,11 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
           Status: {gameState.auctionState === 'none' ? 'No Auction' : 
                    gameState.auctionState === 'in_progress' ? 'Auction in Progress' : 
+                   gameState.auctionState === 'match_bid_phase' ? 'Match Bid Phase' :
                    'Auction Ended'}
         </div>
         
-        {gameState.auctionState === 'in_progress' && (
+        {(gameState.auctionState === 'in_progress' || gameState.auctionState === 'match_bid_phase') && (
           <div style={{ fontSize: '14px', color: '#666' }}>
             Time Left: {timeLeft} seconds
           </div>
@@ -194,6 +197,80 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         </div>
       )}
 
+      {/* Match Bid Phase */}
+      {gameState.auctionState === 'match_bid_phase' && gameState.auctioneer === currentPlayerId && (
+        <div style={{ marginTop: '20px' }}>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#FF5722',
+            marginBottom: '12px',
+            textAlign: 'center'
+          }}>
+            Match Bid Phase - Time Left: {timeLeft} seconds
+          </div>
+          <div style={{
+            fontSize: '14px',
+            color: '#666',
+            marginBottom: '16px',
+            textAlign: 'center'
+          }}>
+            You can match the highest bid of ${gameState.currentBid} to keep the card
+          </div>
+          {currentPlayer && currentPlayer.money >= gameState.currentBid ? (
+            <button
+              onClick={onMatchBid}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#FF5722',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold',
+                width: '100%'
+              }}
+            >
+              Match Bid (${gameState.currentBid})
+            </button>
+          ) : (
+            <div style={{
+              padding: '12px 24px',
+              backgroundColor: '#ccc',
+              color: '#666',
+              border: 'none',
+              borderRadius: '4px',
+              fontSize: '16px',
+              fontWeight: 'bold',
+              width: '100%',
+              textAlign: 'center'
+            }}>
+              Cannot Match Bid - Not Enough Money (You have ${currentPlayer?.money || 0})
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Manual End Auction Button (for testing) */}
+      {gameState.auctionState === 'in_progress' && (
+        <button
+          onClick={onEndAuction}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#FF9800',
+            color: 'white',
+            border: 'none',
+            borderRadius: '4px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            marginTop: '20px',
+            width: '100%'
+          }}
+        >
+          End Auction (Manual)
+        </button>
+      )}
 
     </div>
   );

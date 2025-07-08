@@ -89,13 +89,14 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
         gap: '16px'
       }}>
         {bidders.map(player => {
+          const isDisqualified = gameState.disqualifiedPlayers.includes(player.id);
           const currentBidAmount = bidAmounts[player.id] || 10;
           const isValidBid = currentBidAmount >= 10 && 
                             currentBidAmount > gameState.currentBid && 
                             currentBidAmount % 10 === 0;
           const canAfford = currentBidAmount <= player.money;
-          const canBid = isValidBid && canAfford;
-          const isBluffing = isValidBid && !canAfford;
+          const canBid = isValidBid && canAfford && !isDisqualified;
+          const isBluffing = isValidBid && !canAfford && !isDisqualified;
           const isCurrentBidder = gameState.currentBidder === player.id;
 
           return (
@@ -104,8 +105,31 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
               borderRadius: '8px',
               padding: '16px',
               backgroundColor: isCurrentBidder ? '#f0f8f0' : 'white',
-              boxShadow: isCurrentBidder ? '0 2px 8px rgba(76, 175, 80, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)'
+              boxShadow: isCurrentBidder ? '0 2px 8px rgba(76, 175, 80, 0.3)' : '0 1px 3px rgba(0,0,0,0.1)',
+              opacity: isDisqualified ? 0.6 : 1,
+              position: 'relative'
             }}>
+              {/* Disqualified overlay */}
+              {isDisqualified && (
+                <div style={{
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                  width: '100%',
+                  height: '100%',
+                  background: 'rgba(255,87,34,0.15)',
+                  zIndex: 2,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  fontWeight: 'bold',
+                  color: '#FF5722',
+                  fontSize: '16px',
+                  pointerEvents: 'none'
+                }}>
+                  
+                </div>
+              )}
               <div style={{
                 display: 'flex',
                 justifyContent: 'space-between',
@@ -134,7 +158,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                 </div>
               </div>
 
-              <div style={{ marginBottom: '12px' }}>
+                            <div style={{ marginBottom: '12px' }}>
                 <div style={{
                   fontSize: '12px',
                   color: '#666',
@@ -142,7 +166,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                 }}>
                   Bid Amount:
                 </div>
-                                                 <input
+                <input
                   type="number"
                   value={currentBidAmount}
                   onChange={(e) => handleBidChange(player.id, e.target.value)}
@@ -154,14 +178,16 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                     padding: '8px',
                     borderRadius: '4px',
                     border: '1px solid #ccc',
-                    fontSize: '14px'
+                    fontSize: '14px',
+                    boxSizing: 'border-box'
                   }}
+                  disabled={isDisqualified}
                 />
               </div>
 
               <button
                 onClick={() => handlePlaceBid(player.id)}
-                disabled={!canBid && !isBluffing}
+                disabled={(!canBid && !isBluffing) || isDisqualified}
                 style={{
                   width: '100%',
                   padding: '10px',
@@ -169,7 +195,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  cursor: (canBid || isBluffing) ? 'pointer' : 'not-allowed',
+                  cursor: (canBid || isBluffing) && !isDisqualified ? 'pointer' : 'not-allowed',
                   fontSize: '14px',
                   fontWeight: 'bold'
                 }}
@@ -177,7 +203,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                 {canBid ? 'Place Bid' : isBluffing ? 'Bluff' : 'Place Bid'}
               </button>
 
-              {currentBidAmount > 0 && !canBid && !isBluffing && (
+              {currentBidAmount > 0 && !canBid && !isBluffing && !isDisqualified && (
                 <div style={{
                   fontSize: '11px',
                   color: '#f44336',
@@ -214,6 +240,16 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                   marginBottom: '4px'
                 }}>
                   Hand ({player.hand.length} cards):
+                  {gameState.disqualifiedPlayers.includes(player.id) && (
+                    <span style={{
+                      marginLeft: '8px',
+                      fontSize: '10px',
+                      color: '#FF5722',
+                      fontWeight: 'bold'
+                    }}>
+                      Disqualified: Cannot Bid
+                    </span>
+                  )}
                 </div>
                 <div style={{
                   display: 'flex',
@@ -222,23 +258,28 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                   maxHeight: '60px',
                   overflow: 'hidden'
                 }}>
-                  {player.hand.slice(0, 5).map((card) => (
-                    <div key={card.id} style={{
-                      width: '20px',
-                      height: '30px',
-                      backgroundColor: card.type === 'animal' ? '#FF9800' : '#4CAF50',
-                      border: '1px solid #ccc',
-                      borderRadius: '2px',
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      fontSize: '8px',
-                      color: 'white',
-                      fontWeight: 'bold'
-                    }}>
-                      {card.type === 'animal' ? card.name.charAt(0) : '?'}
-                    </div>
-                  ))}
+                  {player.hand.slice(0, 5).map((card) => {
+                    const isDisqualified = gameState.disqualifiedPlayers.includes(player.id);
+                    const showValue = card.type === 'animal' || isDisqualified;
+                    
+                    return (
+                      <div key={card.id} style={{
+                        width: '20px',
+                        height: '30px',
+                        backgroundColor: card.type === 'animal' ? '#FF9800' : '#4CAF50',
+                        border: '1px solid #ccc',
+                        borderRadius: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        fontSize: '8px',
+                        color: 'white',
+                        fontWeight: 'bold'
+                      }}>
+                        {showValue ? (card.type === 'animal' ? card.name.charAt(0) : card.value.toString()) : '?'}
+                      </div>
+                    );
+                  })}
                   {player.hand.length > 5 && (
                     <div style={{
                       width: '20px',

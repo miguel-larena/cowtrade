@@ -2,6 +2,7 @@ import { useState, useCallback } from 'react';
 import { testGameState } from '../testData';
 import { placeBid, winAuction, tradeCards } from '../gameLogic';
 import type { GameState, Player, GamePhase } from '../types';
+import { selectPaymentCards } from '../utils/payment';
 
 export const useGameState = () => {
   const [gameState, setGameState] = useState<GameState>(testGameState);
@@ -20,7 +21,8 @@ export const useGameState = () => {
         currentBidder: null,
         auctionCard: newPhase === 'auction' && animalCards.length > 0 
           ? animalCards[Math.floor(Math.random() * animalCards.length)] 
-          : undefined
+          : undefined,
+        disqualifiedPlayers: newPhase === 'auction' ? [] : prev.disqualifiedPlayers // Reset disqualified players when entering auction phase
       };
     });
   }, []);
@@ -79,7 +81,8 @@ export const useGameState = () => {
         auctioneer: auctioneerId,
         auctionEndTime: endTime,
         currentBid: 0,
-        currentBidder: null
+        currentBidder: null,
+        disqualifiedPlayers: [] // Reset disqualified players for new auction
       };
     });
   }, []);
@@ -133,15 +136,317 @@ export const useGameState = () => {
     });
   }, []);
 
+  const matchBid = useCallback(() => {
+    setGameState(prev => {
+      if (prev.auctionState !== 'match_bid_phase') {
+        return prev;
+      }
+
+      const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
+      const winningBidder = prev.players.find(p => p.id === prev.currentBidder);
+
+      if (!auctioneer || !winningBidder || !prev.auctionCard) {
+        return prev;
+      }
+
+      console.log('Auctioneer matching bid:', {
+        auctioneer: auctioneer.name,
+        bidAmount: prev.currentBid,
+        winningBidder: winningBidder.name
+      });
+
+      // Calculate payment from auctioneer to winning bidder
+      const moneyCards = auctioneer.hand.filter(card => card.type === 'money');
+      const requiredAmount = prev.currentBid;
+      
+      // Use utility to select payment cards
+      const cardsToRemove = selectPaymentCards(moneyCards, requiredAmount);
+      const totalPaid = moneyCards.filter(card => cardsToRemove.includes(card.id)).reduce((sum, card) => sum + card.value, 0);
+
+      console.log('Match bid payment calculation:', {
+        requiredAmount,
+        totalPaid,
+        cardsToRemove,
+        overpayment: totalPaid - requiredAmount
+      });
+
+      // Get the money cards that the auctioneer is paying with
+      const paidMoneyCards = auctioneer.hand.filter(card => cardsToRemove.includes(card.id));
+      
+      // Update players
+      const updatedPlayers = prev.players.map(player => {
+        if (player.id === auctioneer.id) {
+          // Auctioneer pays the bid amount and keeps the card
+          const newHand = player.hand.filter(card => !cardsToRemove.includes(card.id));
+          if (prev.auctionCard) {
+            newHand.push(prev.auctionCard);
+          }
+          
+          return {
+            ...player,
+            hand: newHand,
+            money: player.money - totalPaid
+          };
+        }
+        
+        if (player.id === winningBidder.id) {
+          // Winning bidder receives the money cards but doesn't get the auction card
+          const newHand = [...player.hand, ...paidMoneyCards];
+          
+          return {
+            ...player,
+            hand: newHand,
+            money: player.money + totalPaid
+          };
+        }
+        
+        return player;
+      });
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        auctionState: 'ended',
+        currentBid: 0,
+        currentBidder: null,
+        auctionCard: undefined,
+        auctioneer: null,
+        auctionEndTime: undefined
+      };
+    });
+  }, []);
+
   const endAuction = useCallback(() => {
     setGameState(prev => {
+      if (prev.auctionState === 'match_bid_phase') {
+        // Match bid phase timed out, proceed with original transaction
+        console.log('Match bid phase timed out, proceeding with original transaction');
+        
+        const winningBidder = prev.players.find(p => p.id === prev.currentBidder);
+        const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
+
+        if (!winningBidder || !auctioneer || !prev.auctionCard) {
+          return {
+            ...prev,
+            auctionState: 'ended',
+            currentBid: 0,
+            currentBidder: null,
+            auctionCard: undefined,
+            auctioneer: null,
+            auctionEndTime: undefined
+          };
+        }
+
+        // Calculate payment - find the best combination of money cards
+        const moneyCards = winningBidder.hand.filter(card => card.type === 'money');
+        const requiredAmount = prev.currentBid;
+        
+        // Use utility to select payment cards
+        const cardsToRemove = selectPaymentCards(moneyCards, requiredAmount);
+        const totalPaid = moneyCards.filter(card => cardsToRemove.includes(card.id)).reduce((sum, card) => sum + card.value, 0);
+
+        console.log('Original transaction payment calculation:', {
+          requiredAmount,
+          totalPaid,
+          cardsToRemove,
+          overpayment: totalPaid - requiredAmount
+        });
+
+        // Update players for original transaction
+        const updatedPlayers = prev.players.map(player => {
+          if (player.id === winningBidder.id) {
+            // Remove paid money cards and add auction card
+            const newHand = player.hand.filter(card => !cardsToRemove.includes(card.id));
+            if (prev.auctionCard) {
+              newHand.push(prev.auctionCard);
+            }
+            
+            return {
+              ...player,
+              hand: newHand,
+              money: player.money - totalPaid
+            };
+          }
+          
+          if (player.id === auctioneer.id) {
+            // Auctioneer receives the payment - get the money cards that were paid
+            const paidMoneyCards = winningBidder.hand.filter(card => cardsToRemove.includes(card.id));
+            return {
+              ...player,
+              hand: [...player.hand, ...paidMoneyCards],
+              money: player.money + totalPaid
+            };
+          }
+          
+          return player;
+        });
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+          auctionState: 'ended',
+          currentBid: 0,
+          currentBidder: null,
+          auctionCard: undefined,
+          auctioneer: null,
+          auctionEndTime: undefined
+        };
+      }
+
       if (prev.auctionState !== 'in_progress') {
         return prev;
       }
 
+      // If no one bid, auctioneer takes the card for free
+      if (!prev.currentBidder || !prev.auctionCard) {
+        const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
+        
+        if (auctioneer && prev.auctionCard) {
+          console.log('No bids - auctioneer takes card for free:', {
+            auctioneer: auctioneer.name,
+            card: prev.auctionCard.name
+          });
+          
+          // Update auctioneer to receive the card
+          const updatedPlayers = prev.players.map(player => {
+            if (player.id === auctioneer.id) {
+              return {
+                ...player,
+                hand: [...player.hand, prev.auctionCard!]
+              };
+            }
+            return player;
+          });
+          
+          return {
+            ...prev,
+            players: updatedPlayers,
+            auctionState: 'ended',
+            currentBid: 0,
+            currentBidder: null,
+            auctionCard: undefined,
+            auctioneer: null,
+            auctionEndTime: undefined
+          };
+        }
+        
+        return {
+          ...prev,
+          auctionState: 'ended',
+          currentBid: 0,
+          currentBidder: null,
+          auctionCard: undefined,
+          auctioneer: null,
+          auctionEndTime: undefined
+        };
+      }
+
+      // Check if the winning bidder can afford their bid
+      const winningBidder = prev.players.find(p => p.id === prev.currentBidder);
+      if (!winningBidder) {
+        return prev;
+      }
+
+      const moneyCards = winningBidder.hand.filter(card => card.type === 'money');
+      const totalMoney = moneyCards.reduce((sum, card) => sum + card.value, 0);
+      
+      // If the winning bidder bluffed and can't afford the bid
+      if (totalMoney < prev.currentBid) {
+        console.log('Bluffing bidder detected:', {
+          bidder: winningBidder.name,
+          bidAmount: prev.currentBid,
+          availableMoney: totalMoney,
+          bluffAmount: prev.currentBid - totalMoney
+        });
+        
+        // Add the bluffing bidder to the disqualified list
+        const newDisqualifiedPlayers = [...prev.disqualifiedPlayers, winningBidder.id];
+        
+        // Check if all bidders are now disqualified
+        const bidders = prev.players.filter(player => player.id !== prev.auctioneer);
+        const allBiddersDisqualified = bidders.every(bidder => newDisqualifiedPlayers.includes(bidder.id));
+        
+        if (allBiddersDisqualified) {
+          // All bidders disqualified - auctioneer takes card for free
+          const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
+          
+          if (auctioneer && prev.auctionCard) {
+            console.log('All bidders disqualified - auctioneer takes card for free:', {
+              auctioneer: auctioneer.name,
+              card: prev.auctionCard.name,
+              disqualifiedPlayers: newDisqualifiedPlayers
+            });
+            
+            // Update auctioneer to receive the card
+            const updatedPlayers = prev.players.map(player => {
+              if (player.id === auctioneer.id) {
+                return {
+                  ...player,
+                  hand: [...player.hand, prev.auctionCard!]
+                };
+              }
+              return player;
+            });
+            
+            return {
+              ...prev,
+              players: updatedPlayers,
+              disqualifiedPlayers: newDisqualifiedPlayers,
+              auctionState: 'ended',
+              currentBid: 0,
+              currentBidder: null,
+              auctionCard: undefined,
+              auctioneer: null,
+              auctionEndTime: undefined
+            };
+          }
+        }
+        
+        // Restart auction with the same card, same auctioneer, but with the bluffing bidder disqualified
+        const newEndTime = Date.now() + 60000; // 60 seconds (1 minute)
+        
+        return {
+          ...prev,
+          disqualifiedPlayers: newDisqualifiedPlayers,
+          auctionState: 'in_progress',
+          currentBid: 0,
+          currentBidder: null,
+          auctionEndTime: newEndTime
+          // Keep the same auctionCard and auctioneer, players keep their hands intact
+        };
+      }
+
+      const auctioneer = prev.players.find(p => p.id === prev.auctioneer);
+
+      if (!auctioneer) {
+        return prev;
+      }
+
+      console.log('Processing auction end:', {
+        winningBidder: winningBidder.name,
+        bidAmount: prev.currentBid,
+        auctioneer: auctioneer.name,
+        auctionCard: prev.auctionCard.name
+      });
+
+      // Calculate payment - find the best combination of money cards
+      const requiredAmount = prev.currentBid;
+      // Use utility to select payment cards
+      const cardsToRemove = selectPaymentCards(moneyCards, requiredAmount);
+      const totalPaid = moneyCards.filter(card => cardsToRemove.includes(card.id)).reduce((sum, card) => sum + card.value, 0);
+
+      console.log('Payment calculation:', {
+        requiredAmount,
+        totalPaid,
+        cardsToRemove,
+        overpayment: totalPaid - requiredAmount
+      });
+
       return {
         ...prev,
-        auctionState: 'ended'
+        auctionState: 'match_bid_phase',
+        auctionEndTime: Date.now() + 5000 // 5 seconds for match bid phase
+        // Don't update players yet - wait for match bid decision or timeout
       };
     });
   }, []);
@@ -242,6 +547,7 @@ export const useGameState = () => {
     startAuction,
     placeBidInAuction,
     endAuction,
+    matchBid,
     
     // Utilities
     getCurrentPlayer,

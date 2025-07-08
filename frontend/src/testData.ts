@@ -145,4 +145,5 @@ export const testGameState: GameState = {
   auctionState: 'none', // No auction in progress initially
   auctioneer: null, // No auctioneer initially
   auctionEndTime: undefined, // No end time initially
+  disqualifiedPlayers: [], // No disqualified players initially
 };

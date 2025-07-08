@@ -20,6 +20,7 @@ interface GameBoardProps {
   onStartAuction: (auctioneerId: string) => void;
   onPlaceBidInAuction: (bidderId: string, amount: number) => void;
   onEndAuction: () => void;
+  onMatchBid: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -33,7 +34,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
   isCurrentPlayerTurn,
   onStartAuction,
   onPlaceBidInAuction,
-  onEndAuction
+  onEndAuction,
+  onMatchBid
 }) => {
 
   const renderPhaseContent = () => {
@@ -63,6 +65,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
               onStartAuction={onStartAuction}
               onPlaceBid={onPlaceBidInAuction}
               onEndAuction={onEndAuction}
+              onMatchBid={onMatchBid}
             />
             <BidderWindows
               gameState={gameState}
