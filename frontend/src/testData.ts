@@ -108,15 +108,10 @@ export const testPlayers: Player[] = [
     id: 'player3',
     name: 'Charlie',
     hand: [
-      { id: 'money10_3_1', type: 'money', value: 10, name: '10' },
-      { id: 'money10_3_2', type: 'money', value: 10, name: '10' },
-      { id: 'money10_3_3', type: 'money', value: 10, name: '10' },
-      { id: 'money10_3_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_3_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_3_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_3_1', type: 'money', value: 50, name: '50' }
     ],
-    money: 90,
+    money: 0,
   },
   {
     id: 'player4',
