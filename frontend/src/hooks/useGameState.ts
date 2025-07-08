@@ -69,8 +69,8 @@ export const useGameState = () => {
       // Select random animal card
       const selectedCard = animalCards[Math.floor(Math.random() * animalCards.length)];
       
-      // Set auction end time (15 seconds from now)
-      const endTime = Date.now() + 15000; // 15 seconds
+      // Set auction end time (1 minute from now)
+      const endTime = Date.now() + 60000; // 60 seconds (1 minute)
 
       return {
         ...prev,
@@ -112,11 +112,16 @@ export const useGameState = () => {
         return prev; // Invalid bid
       }
 
-      // Check if bidder has enough money
+      // Check if bidder exists (money check removed to allow bluffing)
       const bidder = prev.players.find(p => p.id === bidderId);
-      if (!bidder || bidder.money < amount) {
-        console.log('Not enough money:', { bidderMoney: bidder?.money, amount });
-        return prev; // Not enough money
+      if (!bidder) {
+        console.log('Bidder not found:', bidderId);
+        return prev;
+      }
+      
+      // Log if this is a bluff
+      if (bidder.money < amount) {
+        console.log('Bluff detected:', { bidderId, bidderMoney: bidder.money, amount });
       }
 
       console.log('Bid accepted:', { bidderId, amount });

@@ -23,19 +23,31 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
   const handlePlaceBid = (playerId: string) => {
     // Use the current bid amount from the input (which defaults to 10)
     const currentBidAmount = bidAmounts[playerId] || 10;
+    const player = gameState.players.find(p => p.id === playerId);
+    const isValidBid = currentBidAmount >= 10 && currentBidAmount % 10 === 0 && currentBidAmount > gameState.currentBid;
+    const canAfford = player && currentBidAmount <= player.money;
+    const isBluffing = isValidBid && !canAfford;
+    
     console.log('Attempting to place bid:', {
       playerId,
       amount: currentBidAmount,
       currentBid: gameState.currentBid,
-      isValid: currentBidAmount >= 10 && currentBidAmount % 10 === 0 && currentBidAmount > gameState.currentBid
+      playerMoney: player?.money,
+      isValid: isValidBid,
+      canAfford,
+      isBluffing
     });
-    if (currentBidAmount >= 10 && currentBidAmount % 10 === 0 && currentBidAmount > gameState.currentBid) {
+    
+    if (isValidBid) {
       onPlaceBid(playerId, currentBidAmount);
-      // Reset bid amount for this player to next valid bid
-      setBidAmounts(prev => ({
-        ...prev,
-        [playerId]: currentBidAmount + 10
-      }));
+      // Update all players' bid amounts to current bid + 10
+      setBidAmounts(prev => {
+        const newBidAmounts = { ...prev };
+        bidders.forEach(bidder => {
+          newBidAmounts[bidder.id] = currentBidAmount + 10;
+        });
+        return newBidAmounts;
+      });
     }
   };
 
@@ -78,10 +90,12 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
       }}>
         {bidders.map(player => {
           const currentBidAmount = bidAmounts[player.id] || 10;
-          const canBid = currentBidAmount >= 10 && 
-                        currentBidAmount > gameState.currentBid && 
-                        currentBidAmount <= player.money &&
-                        currentBidAmount % 10 === 0;
+          const isValidBid = currentBidAmount >= 10 && 
+                            currentBidAmount > gameState.currentBid && 
+                            currentBidAmount % 10 === 0;
+          const canAfford = currentBidAmount <= player.money;
+          const canBid = isValidBid && canAfford;
+          const isBluffing = isValidBid && !canAfford;
           const isCurrentBidder = gameState.currentBidder === player.id;
 
           return (
@@ -128,13 +142,13 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                 }}>
                   Bid Amount:
                 </div>
-                                 <input
-                   type="number"
-                   value={currentBidAmount}
-                   onChange={(e) => handleBidChange(player.id, e.target.value)}
-                   min={10}
-                   max={player.money}
-                   step={10}
+                                                 <input
+                  type="number"
+                  value={currentBidAmount}
+                  onChange={(e) => handleBidChange(player.id, e.target.value)}
+                  min={10}
+                  max={1000}
+                  step={10}
                   style={{
                     width: '100%',
                     padding: '8px',
@@ -147,23 +161,23 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
 
               <button
                 onClick={() => handlePlaceBid(player.id)}
-                disabled={!canBid}
+                disabled={!canBid && !isBluffing}
                 style={{
                   width: '100%',
                   padding: '10px',
-                  backgroundColor: canBid ? '#2196F3' : '#ccc',
+                  backgroundColor: canBid ? '#2196F3' : isBluffing ? '#FF5722' : '#ccc',
                   color: 'white',
                   border: 'none',
                   borderRadius: '4px',
-                  cursor: canBid ? 'pointer' : 'not-allowed',
+                  cursor: (canBid || isBluffing) ? 'pointer' : 'not-allowed',
                   fontSize: '14px',
                   fontWeight: 'bold'
                 }}
               >
-                Place Bid
+                {canBid ? 'Place Bid' : isBluffing ? 'Bluff' : 'Place Bid'}
               </button>
 
-              {currentBidAmount > 0 && !canBid && (
+              {currentBidAmount > 0 && !canBid && !isBluffing && (
                 <div style={{
                   fontSize: '11px',
                   color: '#f44336',
@@ -176,7 +190,19 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                     ? 'Bid too low' 
                     : currentBidAmount % 10 !== 0
                     ? 'Must be multiple of 10'
-                    : 'Not enough money'}
+                    : 'Invalid bid'}
+                </div>
+              )}
+              
+              {isBluffing && (
+                <div style={{
+                  fontSize: '11px',
+                  color: '#FF5722',
+                  marginTop: '8px',
+                  textAlign: 'center',
+                  fontWeight: 'bold'
+                }}>
+                  Bluffing! You only have ${player.money}
                 </div>
               )}
 
@@ -210,7 +236,7 @@ const BidderWindows: React.FC<BidderWindowsProps> = ({
                       color: 'white',
                       fontWeight: 'bold'
                     }}>
-                      {card.type === 'animal' ? card.name.charAt(0) : card.value}
+                      {card.type === 'animal' ? card.name.charAt(0) : '?'}
                     </div>
                   ))}
                   {player.hand.length > 5 && (
