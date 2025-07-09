@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { testGameState, animalCards } from '../testData';
 import { placeBid, winAuction, tradeCards } from '../gameLogic';
-import type { GameState, Player, GamePhase } from '../types';
+import type { GameState, Player, GamePhase, TradeOffer } from '../types';
 import { selectPaymentCards } from '../utils/payment';
 
 export const useGameState = () => {
@@ -563,6 +563,212 @@ export const useGameState = () => {
     });
   }, []);
 
+  // Trading functions
+  const initiateTrade = useCallback((initiatorId: string, partnerId?: string) => {
+    console.log('initiateTrade called:', { initiatorId, partnerId });
+    
+    setGameState(prev => {
+      console.log('initiateTrade state update:', {
+        currentTurn: prev.currentTurn,
+        initiatorId,
+        isTurnMatch: prev.currentTurn === initiatorId
+      });
+      
+      // Check if it's the player's turn
+      if (prev.currentTurn !== initiatorId) {
+        console.log('Not player\'s turn, ignoring initiateTrade');
+        return prev; // Not their turn
+      }
+
+      // If partnerId is provided, go directly to making_offers
+      if (partnerId) {
+        console.log('Going directly to making_offers with partner:', partnerId);
+        return {
+          ...prev,
+          tradeState: 'making_offers',
+          tradeInitiator: initiatorId,
+          tradePartner: partnerId,
+          tradeOffers: [],
+          tradeConfirmed: false
+        };
+      }
+
+      // Otherwise, go to selecting_partner
+      console.log('Going to selecting_partner');
+      return {
+        ...prev,
+        tradeState: 'selecting_partner',
+        tradeInitiator: initiatorId,
+        tradePartner: null,
+        tradeOffers: [],
+        tradeConfirmed: false
+      };
+    });
+  }, []);
+
+  const selectTradePartner = useCallback((partnerId: string) => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'selecting_partner') {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        tradeState: 'making_offers',
+        tradePartner: partnerId
+      };
+    });
+  }, []);
+
+  const makeTradeOffer = useCallback((playerId: string, animalCards: string[], moneyCards: string[]) => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'making_offers') {
+        return prev;
+      }
+
+      // Calculate total value of money cards
+      const totalValue = prev.players
+        .find(p => p.id === playerId)
+        ?.hand.filter(card => moneyCards.includes(card.id))
+        .reduce((sum, card) => sum + card.value, 0) || 0;
+
+      const newOffer: TradeOffer = {
+        playerId,
+        animalCards,
+        moneyCards,
+        totalValue
+      };
+
+      // Update or add the offer
+      const updatedOffers = prev.tradeOffers.filter(offer => offer.playerId !== playerId);
+      updatedOffers.push(newOffer);
+
+      // If both players have made offers, move to confirmation
+      const bothOffersMade = updatedOffers.length === 2;
+      
+      return {
+        ...prev,
+        tradeOffers: updatedOffers,
+        tradeState: bothOffersMade ? 'confirming_trade' : 'making_offers'
+      };
+    });
+  }, []);
+
+  const confirmTrade = useCallback((playerId: string) => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'confirming_trade') {
+        return prev;
+      }
+
+      console.log(`Player ${playerId} confirmed the trade`);
+      return {
+        ...prev,
+        tradeConfirmed: true
+      };
+    });
+  }, []);
+
+  const executeTrade = useCallback(() => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'confirming_trade' || !prev.tradeConfirmed) {
+        return prev;
+      }
+
+      if (prev.tradeOffers.length !== 2) {
+        return prev;
+      }
+
+      const [offer1, offer2] = prev.tradeOffers;
+      const player1 = prev.players.find(p => p.id === offer1.playerId);
+      const player2 = prev.players.find(p => p.id === offer2.playerId);
+
+      if (!player1 || !player2) {
+        return prev;
+      }
+
+      // Validate trade: both players must trade same number of animal cards
+      const animalCardCount1 = offer1.animalCards.length;
+      const animalCardCount2 = offer2.animalCards.length;
+      
+      if (animalCardCount1 !== animalCardCount2 || (animalCardCount1 !== 2 && animalCardCount1 !== 4)) {
+        return prev; // Invalid trade
+      }
+
+      // Execute the trade
+      const updatedPlayers = prev.players.map(player => {
+        if (player.id === offer1.playerId) {
+          // Player 1 gives animal cards and money cards, receives player 2's offer
+          const newHand = player.hand.filter(card => 
+            !offer1.animalCards.includes(card.id) && 
+            !offer1.moneyCards.includes(card.id)
+          );
+          
+          // Add player 2's animal cards
+          const player2AnimalCards = player2.hand.filter(card => 
+            offer2.animalCards.includes(card.id)
+          );
+          
+          // Add player 2's money cards
+          const player2MoneyCards = player2.hand.filter(card => 
+            offer2.moneyCards.includes(card.id)
+          );
+
+          return {
+            ...player,
+            hand: [...newHand, ...player2AnimalCards, ...player2MoneyCards]
+          };
+        }
+        
+        if (player.id === offer2.playerId) {
+          // Player 2 gives animal cards and money cards, receives player 1's offer
+          const newHand = player.hand.filter(card => 
+            !offer2.animalCards.includes(card.id) && 
+            !offer2.moneyCards.includes(card.id)
+          );
+          
+          // Add player 1's animal cards
+          const player1AnimalCards = player1.hand.filter(card => 
+            offer1.animalCards.includes(card.id)
+          );
+          
+          // Add player 1's money cards
+          const player1MoneyCards = player1.hand.filter(card => 
+            offer1.moneyCards.includes(card.id)
+          );
+
+          return {
+            ...player,
+            hand: [...newHand, ...player1AnimalCards, ...player1MoneyCards]
+          };
+        }
+        
+        return player;
+      });
+
+      // Progress to next turn after successful trade
+      const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+      const nextIndex = (currentIndex + 1) % prev.players.length;
+
+      return {
+        ...prev,
+        players: updatedPlayers,
+        tradeState: 'trade_complete',
+        currentTurn: prev.players[nextIndex].id
+      };
+    });
+  }, []);
+
+  const cancelTrade = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      tradeState: 'none',
+      tradeInitiator: null,
+      tradePartner: null,
+      tradeOffers: [],
+      tradeConfirmed: false
+    }));
+  }, []);
+
   // Game flow actions
   const startGame = useCallback(() => {
     setGameState(prev => {
@@ -616,6 +822,14 @@ export const useGameState = () => {
     placeBidInAuction,
     endAuction,
     matchBid,
+    
+    // Trading actions
+    initiateTrade,
+    selectTradePartner,
+    makeTradeOffer,
+    confirmTrade,
+    executeTrade,
+    cancelTrade,
     
     // Utilities
     getCurrentPlayer,

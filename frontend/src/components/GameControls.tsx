@@ -5,22 +5,12 @@ interface GameControlsProps {
   gameState: GameState;
   currentPlayerId: string;
   onPhaseChange: (phase: GamePhase) => void;
-  onNextTurn: () => void;
-  onStartGame: () => void;
-  onEndGame: () => void;
-  onEmptyDeck: () => void;
-  onAddAnimalCards: () => void;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
   gameState,
   currentPlayerId,
-  onPhaseChange,
-  onNextTurn,
-  onStartGame,
-  onEndGame,
-  onEmptyDeck,
-  onAddAnimalCards
+  onPhaseChange
 }) => {
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const turnPlayer = gameState.players.find(p => p.id === gameState.currentTurn);
@@ -112,14 +102,14 @@ const GameControls: React.FC<GameControlsProps> = ({
           </button>
           <button
             onClick={() => onPhaseChange('trade')}
-            disabled={gameState.currentPhase === 'trade'}
+            disabled={gameState.currentPhase === 'trade' || gameState.auctionState !== 'none'}
             style={{
               padding: '8px 16px',
-              backgroundColor: gameState.currentPhase === 'trade' ? '#ccc' : '#2196F3',
+              backgroundColor: (gameState.currentPhase === 'trade' || gameState.auctionState !== 'none') ? '#ccc' : '#2196F3',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
-              cursor: gameState.currentPhase === 'trade' ? 'not-allowed' : 'pointer'
+              cursor: (gameState.currentPhase === 'trade' || gameState.auctionState !== 'none') ? 'not-allowed' : 'pointer'
             }}
           >
             Trade
