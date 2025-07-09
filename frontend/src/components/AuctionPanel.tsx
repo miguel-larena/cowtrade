@@ -46,7 +46,11 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   };
 
   const handlePlaceBid = () => {
-    if (bidAmount >= 10 && bidAmount % 10 === 0 && bidAmount > gameState.currentBid) {
+    const isValidBid = bidAmount >= 10 && bidAmount % 10 === 0 && bidAmount > gameState.currentBid;
+    const canAfford = currentPlayer && bidAmount <= currentPlayer.money;
+    const isBluffing = isValidBid && !canAfford;
+    
+    if (isValidBid || isBluffing) {
       onPlaceBid(currentPlayerId, bidAmount);
       setBidAmount(gameState.currentBid + 10); // Set next valid bid amount
     }
@@ -54,14 +58,34 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
   const isCurrentPlayerTurn = gameState.currentTurn === currentPlayerId;
   const isAuctioneer = gameState.auctioneer === currentPlayerId;
-  const canBid = currentPlayer && 
-                 gameState.auctionState === 'in_progress' && 
-                 !isAuctioneer && 
-                 bidAmount > gameState.currentBid && 
-                 bidAmount <= currentPlayer.money &&
-                 bidAmount % 10 === 0;
+  const isValidBid = currentPlayer && 
+                     gameState.auctionState === 'in_progress' && 
+                     !isAuctioneer && 
+                     bidAmount > gameState.currentBid && 
+                     bidAmount % 10 === 0;
+  const canAfford = currentPlayer && bidAmount <= currentPlayer.money;
+  const canBid = isValidBid && canAfford;
+  const isBluffing = isValidBid && !canAfford;
 
   const canStartAuction = isCurrentPlayerTurn && gameState.auctionState === 'none';
+  
+  // Check if deck has animal cards
+  const animalCardsInDeck = gameState.deck.filter(card => card.type === 'animal');
+  const canDrawCard = animalCardsInDeck.length > 0;
+  const canStartAuctionWithCard = canStartAuction && canDrawCard;
+  
+  // Debug logging
+  console.log('AuctionPanel Debug:', {
+    currentPlayerId,
+    currentTurn: gameState.currentTurn,
+    isCurrentPlayerTurn,
+    auctionState: gameState.auctionState,
+    canStartAuction,
+    canDrawCard,
+    animalCardsInDeck: animalCardsInDeck.length,
+    currentPlayerName: gameState.players.find(p => p.id === currentPlayerId)?.name,
+    currentTurnPlayerName: gameState.players.find(p => p.id === gameState.currentTurn)?.name
+  });
 
   return (
     <div style={{
@@ -75,6 +99,28 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         Auction Phase
       </h2>
       
+      {/* Turn Indicator */}
+      <div style={{ 
+        marginBottom: '16px',
+        padding: '8px 12px',
+        backgroundColor: isCurrentPlayerTurn ? '#4CAF50' : '#f5f5f5',
+        borderRadius: '4px',
+        border: isCurrentPlayerTurn ? '2px solid #2E7D32' : '1px solid #ddd'
+      }}>
+        <div style={{ 
+          fontSize: '14px', 
+          fontWeight: 'bold',
+          color: isCurrentPlayerTurn ? 'white' : '#666'
+        }}>
+          Current Turn: {gameState.players.find(p => p.id === gameState.currentTurn)?.name || 'Unknown'}
+          {isCurrentPlayerTurn && (
+            <span style={{ marginLeft: '8px', fontSize: '12px' }}>
+              (Your Turn)
+            </span>
+          )}
+        </div>
+      </div>
+      
       {/* Auction State Display */}
       <div style={{ marginBottom: '16px' }}>
         <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
@@ -84,6 +130,21 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                    'Auction Ended'}
         </div>
         
+        {/* Deck Status */}
+        <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
+          Animal Cards in Deck: {animalCardsInDeck.length}/40
+          {animalCardsInDeck.length === 0 && (
+            <span style={{ 
+              marginLeft: '8px', 
+              color: '#FF5722', 
+              fontWeight: 'bold',
+              fontStyle: 'italic'
+            }}>
+              (Deck Empty - No More Auctions)
+            </span>
+          )}
+        </div>
+        
         {(gameState.auctionState === 'in_progress' || gameState.auctionState === 'match_bid_phase') && (
           <div style={{ fontSize: '14px', color: '#666' }}>
             Time Left: {timeLeft} seconds
@@ -91,8 +152,27 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         )}
       </div>
 
+      {/* Empty Deck Message */}
+      {canStartAuction && !canDrawCard && (
+        <div style={{
+          marginBottom: '20px',
+          padding: '16px',
+          backgroundColor: '#fff3cd',
+          border: '2px solid #ffc107',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#856404', marginBottom: '8px' }}>
+            🃏 Deck Empty
+          </div>
+          <div style={{ fontSize: '14px', color: '#856404' }}>
+            All animal cards have been auctioned. No more auctions can be started.
+          </div>
+        </div>
+      )}
+
       {/* Start Auction Button */}
-      {canStartAuction && (
+      {canStartAuctionWithCard && (
         <div style={{ marginBottom: '20px' }}>
           <button
             onClick={() => onStartAuction(currentPlayerId)}
@@ -148,7 +228,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                   value={bidAmount}
                   onChange={handleBidChange}
                   min={gameState.currentBid + 10}
-                  max={currentPlayer.money}
+                  max={1000}
                   step={10}
                   style={{
                     padding: '8px',
@@ -160,26 +240,31 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                 />
                 <button
                   onClick={handlePlaceBid}
-                  disabled={!canBid}
+                  disabled={!canBid && !isBluffing}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: canBid ? '#4CAF50' : '#ccc',
+                    backgroundColor: canBid ? '#4CAF50' : isBluffing ? '#FF5722' : '#ccc',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
-                    cursor: canBid ? 'pointer' : 'not-allowed'
+                    cursor: (canBid || isBluffing) ? 'pointer' : 'not-allowed'
                   }}
                 >
-                  Place Bid
+                  {canBid ? 'Place Bid' : isBluffing ? 'Bluff' : 'Place Bid'}
                 </button>
               </div>
-              {bidAmount > 0 && !canBid && (
+              {bidAmount > 0 && !canBid && !isBluffing && (
                 <div style={{ fontSize: '12px', color: '#f44336', marginTop: '4px' }}>
                   {bidAmount <= gameState.currentBid 
                     ? 'Bid must be higher than current bid' 
                     : bidAmount % 10 !== 0
                     ? 'Bid must be a multiple of 10'
-                    : 'Not enough money'}
+                    : 'Invalid bid'}
+                </div>
+              )}
+              {isBluffing && (
+                <div style={{ fontSize: '12px', color: '#FF5722', marginTop: '4px', fontWeight: 'bold' }}>
+                  Bluffing! You only have ${currentPlayer?.money}
                 </div>
               )}
             </div>

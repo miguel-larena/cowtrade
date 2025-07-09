@@ -19,7 +19,9 @@ function App() {
     startAuction,
     placeBidInAuction,
     endAuction,
-    matchBid
+    matchBid,
+    emptyDeck,
+    addAnimalCards
   } = useGameState();
 
   const navigate = useNavigate();
@@ -70,6 +72,8 @@ function App() {
             onPlaceBidInAuction={placeBidInAuction}
             onEndAuction={endAuction}
             onMatchBid={matchBid}
+            onEmptyDeck={emptyDeck}
+            onAddAnimalCards={addAnimalCards}
           />
         } />
       </Routes>

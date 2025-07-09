@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { testGameState } from '../testData';
+import { testGameState, animalCards } from '../testData';
 import { placeBid, winAuction, tradeCards } from '../gameLogic';
 import type { GameState, Player, GamePhase } from '../types';
 import { selectPaymentCards } from '../utils/payment';
@@ -203,15 +203,23 @@ export const useGameState = () => {
         return player;
       });
 
+      // Progress to next turn after successful auction
+      const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+      const nextIndex = (currentIndex + 1) % prev.players.length;
+      
+      const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+      
       return {
         ...prev,
         players: updatedPlayers,
-        auctionState: 'ended',
+        auctionState: 'none', // Reset to 'none' for next player's turn
         currentBid: 0,
         currentBidder: null,
         auctionCard: undefined,
         auctioneer: null,
-        auctionEndTime: undefined
+        auctionEndTime: undefined,
+        currentTurn: prev.players[nextIndex].id,
+        deck: updatedDeck
       };
     });
   }, []);
@@ -270,16 +278,24 @@ export const useGameState = () => {
                 return player;
               });
               
+              // Progress to next turn after all bidders disqualified
+              const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+              const nextIndex = (currentIndex + 1) % prev.players.length;
+              
+              const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+              
               return {
                 ...prev,
                 players: updatedPlayers,
                 disqualifiedPlayers: newDisqualifiedPlayers,
-                auctionState: 'ended',
+                auctionState: 'none', // Reset to 'none' for next player's turn
                 currentBid: 0,
                 currentBidder: null,
                 auctionCard: undefined,
                 auctioneer: null,
-                auctionEndTime: undefined
+                auctionEndTime: undefined,
+                currentTurn: prev.players[nextIndex].id,
+                deck: updatedDeck
               };
             }
           }
@@ -287,14 +303,16 @@ export const useGameState = () => {
           // Restart auction with the bluffing bidder disqualified
           const newEndTime = Date.now() + 60000; // 60 seconds (1 minute)
           
+          const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+          
           return {
             ...prev,
             disqualifiedPlayers: newDisqualifiedPlayers,
             auctionState: 'in_progress',
             currentBid: 0,
             currentBidder: null,
-            auctionEndTime: newEndTime
-            // Keep the same auctionCard and auctioneer
+            auctionEndTime: newEndTime,
+            deck: updatedDeck
           };
         }
         
@@ -341,15 +359,23 @@ export const useGameState = () => {
           return player;
         });
 
+        // Progress to next turn after successful auction
+        const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+        const nextIndex = (currentIndex + 1) % prev.players.length;
+        
+        const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+        
         return {
           ...prev,
           players: updatedPlayers,
-          auctionState: 'ended',
+          auctionState: 'none', // Reset to 'none' for next player's turn
           currentBid: 0,
           currentBidder: null,
           auctionCard: undefined,
           auctioneer: null,
-          auctionEndTime: undefined
+          auctionEndTime: undefined,
+          currentTurn: prev.players[nextIndex].id,
+          deck: updatedDeck
         };
       }
 
@@ -378,26 +404,37 @@ export const useGameState = () => {
             return player;
           });
           
+          // Progress to next turn after auctioneer takes card for free
+          const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+          const nextIndex = (currentIndex + 1) % prev.players.length;
+          
+          const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+          
           return {
             ...prev,
             players: updatedPlayers,
-            auctionState: 'ended',
+            auctionState: 'none', // Reset to 'none' for next player's turn
             currentBid: 0,
             currentBidder: null,
             auctionCard: undefined,
             auctioneer: null,
-            auctionEndTime: undefined
+            auctionEndTime: undefined,
+            currentTurn: prev.players[nextIndex].id,
+            deck: updatedDeck
           };
         }
         
+        const updatedDeck = prev.auctionCard ? prev.deck.filter(card => card.id !== prev.auctionCard!.id) : prev.deck;
+        
         return {
           ...prev,
-          auctionState: 'ended',
+          auctionState: 'none', // Reset to 'none' for next player's turn
           currentBid: 0,
           currentBidder: null,
           auctionCard: undefined,
           auctioneer: null,
-          auctionEndTime: undefined
+          auctionEndTime: undefined,
+          deck: updatedDeck
         };
       }
 
@@ -440,7 +477,7 @@ export const useGameState = () => {
         winningBidder: winningBidder.name,
         bidAmount: prev.currentBid,
         auctioneer: auctioneer.name,
-        auctionCard: prev.auctionCard.name
+        auctionCard: prev.auctionCard?.name
       });
 
       // Calculate payment - find the best combination of money cards
@@ -509,6 +546,23 @@ export const useGameState = () => {
     }));
   }, []);
 
+  // Debug functions for testing
+  const emptyDeck = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      deck: prev.deck.filter(card => card.type !== 'animal')
+    }));
+  }, []);
+
+  const addAnimalCards = useCallback(() => {
+    setGameState(prev => {
+      return {
+        ...prev,
+        deck: [...prev.deck, ...animalCards]
+      };
+    });
+  }, []);
+
   // Game flow actions
   const startGame = useCallback(() => {
     setGameState(prev => {
@@ -569,6 +623,10 @@ export const useGameState = () => {
     isCurrentPlayerTurn,
     
     // Setters
-    setCurrentPlayerId
+    setCurrentPlayerId,
+    
+    // Debug functions
+    emptyDeck,
+    addAnimalCards
   };
 }; 

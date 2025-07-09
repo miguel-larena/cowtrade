@@ -8,6 +8,8 @@ interface GameControlsProps {
   onNextTurn: () => void;
   onStartGame: () => void;
   onEndGame: () => void;
+  onEmptyDeck: () => void;
+  onAddAnimalCards: () => void;
 }
 
 const GameControls: React.FC<GameControlsProps> = ({
@@ -16,7 +18,9 @@ const GameControls: React.FC<GameControlsProps> = ({
   onPhaseChange,
   onNextTurn,
   onStartGame,
-  onEndGame
+  onEndGame,
+  onEmptyDeck,
+  onAddAnimalCards
 }) => {
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const turnPlayer = gameState.players.find(p => p.id === gameState.currentTurn);
@@ -93,20 +97,6 @@ const GameControls: React.FC<GameControlsProps> = ({
         <h3 style={{ margin: '0 0 12px 0' }}>Phase Management</h3>
         <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
           <button
-            onClick={() => onPhaseChange('lobby')}
-            disabled={gameState.currentPhase === 'lobby'}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: gameState.currentPhase === 'lobby' ? '#ccc' : '#9E9E9E',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: gameState.currentPhase === 'lobby' ? 'not-allowed' : 'pointer'
-            }}
-          >
-            Lobby
-          </button>
-          <button
             onClick={() => onPhaseChange('auction')}
             disabled={gameState.currentPhase === 'auction'}
             style={{
@@ -133,68 +123,6 @@ const GameControls: React.FC<GameControlsProps> = ({
             }}
           >
             Trade
-          </button>
-          <button
-            onClick={() => onPhaseChange('end')}
-            disabled={gameState.currentPhase === 'end'}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: gameState.currentPhase === 'end' ? '#ccc' : '#F44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: gameState.currentPhase === 'end' ? 'not-allowed' : 'pointer'
-            }}
-          >
-            End
-          </button>
-        </div>
-      </div>
-
-      {/* Game Flow Controls */}
-      <div style={{ marginBottom: '20px' }}>
-        <h3 style={{ margin: '0 0 12px 0' }}>Game Flow</h3>
-        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap' }}>
-          <button
-            onClick={onStartGame}
-            disabled={gameState.currentPhase !== 'lobby'}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: gameState.currentPhase === 'lobby' ? '#4CAF50' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: gameState.currentPhase === 'lobby' ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Start Game
-          </button>
-          <button
-            onClick={onNextTurn}
-            disabled={gameState.currentPhase === 'lobby' || gameState.currentPhase === 'end'}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: (gameState.currentPhase !== 'lobby' && gameState.currentPhase !== 'end') ? '#FF9800' : '#ccc',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: (gameState.currentPhase !== 'lobby' && gameState.currentPhase !== 'end') ? 'pointer' : 'not-allowed'
-            }}
-          >
-            Next Turn
-          </button>
-          <button
-            onClick={onEndGame}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#F44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer'
-            }}
-          >
-            End Game
           </button>
         </div>
       </div>
