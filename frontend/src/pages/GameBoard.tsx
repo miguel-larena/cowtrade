@@ -12,7 +12,6 @@ interface GameBoardProps {
   onNextTurn: () => void;
   onPlaceBid: (playerId: string, amount: number) => void;
   onWinAuction: () => void;
-  onTradeCards: (player1Id: string, player2Id: string, card1Id: string, card2Id: string) => void;
   onStartGame: () => void;
   onEndGame: () => void;
   isCurrentPlayerTurn: (playerId: string) => boolean;
@@ -22,23 +21,29 @@ interface GameBoardProps {
   onMatchBid: () => void;
   onEmptyDeck: () => void;
   onAddAnimalCards: () => void;
+  onInitiateTrade: (initiatorId: string) => void;
+  onSelectTradePartner: (partnerId: string) => void;
+  onMakeTradeOffer: (playerId: string, animalCards: string[], moneyCards: string[]) => void;
+  onConfirmTrade: (playerId: string) => void;
+  onExecuteTrade: () => void;
+  onCancelTrade: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
   currentPlayerId,
   onPhaseChange,
-  onNextTurn,
-  onTradeCards,
-  onStartGame,
-  onEndGame,
   isCurrentPlayerTurn,
   onStartAuction,
   onPlaceBidInAuction,
   onEndAuction,
   onMatchBid,
-  onEmptyDeck,
-  onAddAnimalCards
+  onInitiateTrade,
+  onSelectTradePartner,
+  onMakeTradeOffer,
+  onConfirmTrade,
+  onExecuteTrade,
+  onCancelTrade
 }) => {
   const [testPlayerId, setTestPlayerId] = useState(currentPlayerId);
 
@@ -78,7 +83,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
         return (
           <TradingPanel
             gameState={gameState}
-            onTradeCards={(player1Id, player2Id, card1Id, card2Id) => onTradeCards(player1Id, player2Id, card1Id, card2Id)}
+            currentPlayerId={testPlayerId}
+            onInitiateTrade={onInitiateTrade}
+            onSelectTradePartner={onSelectTradePartner}
+            onMakeTradeOffer={onMakeTradeOffer}
+            onConfirmTrade={onConfirmTrade}
+            onExecuteTrade={onExecuteTrade}
+            onCancelTrade={onCancelTrade}
           />
         );
       
@@ -173,11 +184,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
             gameState={gameState}
             currentPlayerId={testPlayerId}
             onPhaseChange={onPhaseChange}
-            onNextTurn={onNextTurn}
-            onStartGame={onStartGame}
-            onEndGame={onEndGame}
-            onEmptyDeck={onEmptyDeck}
-            onAddAnimalCards={onAddAnimalCards}
           />
         </div>
 

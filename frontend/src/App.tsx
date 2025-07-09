@@ -13,7 +13,6 @@ function App() {
     nextTurn,
     handlePlaceBid,
     handleWinAuction,
-    handleTradeCards,
     endGame,
     isCurrentPlayerTurn,
     startAuction,
@@ -21,7 +20,13 @@ function App() {
     endAuction,
     matchBid,
     emptyDeck,
-    addAnimalCards
+    addAnimalCards,
+    initiateTrade,
+    selectTradePartner,
+    makeTradeOffer,
+    confirmTrade,
+    executeTrade,
+    cancelTrade
   } = useGameState();
 
   const navigate = useNavigate();
@@ -64,7 +69,6 @@ function App() {
             onNextTurn={nextTurn}
             onPlaceBid={handlePlaceBid}
             onWinAuction={handleWinAuction}
-            onTradeCards={handleTradeCards}
             onStartGame={startGame}
             onEndGame={endGame}
             isCurrentPlayerTurn={isCurrentPlayerTurn}
@@ -74,6 +78,12 @@ function App() {
             onMatchBid={matchBid}
             onEmptyDeck={emptyDeck}
             onAddAnimalCards={addAnimalCards}
+            onInitiateTrade={initiateTrade}
+            onSelectTradePartner={selectTradePartner}
+            onMakeTradeOffer={makeTradeOffer}
+            onConfirmTrade={confirmTrade}
+            onExecuteTrade={executeTrade}
+            onCancelTrade={cancelTrade}
           />
         } />
       </Routes>

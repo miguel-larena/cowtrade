@@ -86,7 +86,8 @@ export const testPlayers: Player[] = [
       { id: 'money10_1_5', type: 'money', value: 10, name: '10' },
       { id: 'money0_1_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_1_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_1_1', type: 'money', value: 50, name: '50' }
+      { id: 'money50_1_1', type: 'money', value: 50, name: '50' },
+      { id: 'cow_1', type: 'animal', value: 1000, name: 'Cow' }
     ],
     money: 100,
   },
@@ -100,7 +101,8 @@ export const testPlayers: Player[] = [
       { id: 'money10_2_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_2_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_2_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_2_1', type: 'money', value: 50, name: '50' }
+      { id: 'money50_2_1', type: 'money', value: 50, name: '50' },
+      { id: 'cow_2', type: 'animal', value: 1000, name: 'Cow' }
     ],
     money: 90,
   },
@@ -110,6 +112,7 @@ export const testPlayers: Player[] = [
     hand: [
       { id: 'money0_3_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_3_2', type: 'money', value: 0, name: '0' },
+      { id: 'cow_3', type: 'animal', value: 1000, name: 'Cow' }
     ],
     money: 0,
   },
@@ -123,7 +126,8 @@ export const testPlayers: Player[] = [
       { id: 'money10_4_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_4_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_4_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_4_1', type: 'money', value: 50, name: '50' }
+      { id: 'money50_4_1', type: 'money', value: 50, name: '50' },
+      { id: 'cow_4', type: 'animal', value: 1000, name: 'Cow' }
     ],
     money: 90,
   },
@@ -132,7 +136,11 @@ export const testPlayers: Player[] = [
 // Test game state
 export const testGameState: GameState = {
   players: testPlayers,
-  deck: [...animalCards, ...moneyCards], // Full deck for reference
+  // Remove the cow cards given to players from the deck
+  deck: [
+    ...animalCards.filter(card => !(card.name === 'Cow' && ['cow_1','cow_2','cow_3','cow_4'].includes(card.id))),
+    ...moneyCards
+  ], // Full deck for reference
   currentTurn: 'player1',
   currentPhase: 'auction',
   auctionCard: undefined, // No auction card initially
@@ -142,4 +150,11 @@ export const testGameState: GameState = {
   auctioneer: null, // No auctioneer initially
   auctionEndTime: undefined, // No end time initially
   disqualifiedPlayers: [], // No disqualified players initially
+  
+  // Trading state
+  tradeState: 'none',
+  tradeInitiator: null,
+  tradePartner: null,
+  tradeOffers: [],
+  tradeConfirmed: false
 };
