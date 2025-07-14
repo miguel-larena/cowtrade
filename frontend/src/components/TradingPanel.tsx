@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import type { GameState } from '../types';
+import type { GameState, Player } from '../types';
 import CardComponent from './Card';
 
 interface TradingPanelProps {
@@ -32,6 +32,83 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
 
   const currentOffer = gameState.tradeOffers.find(offer => offer.playerId === currentPlayerId);
   const otherOffer = gameState.tradeOffers.find(offer => offer.playerId !== currentPlayerId);
+
+  // Helper function to check if a player has the same animal types as current player
+  const hasSameAnimalTypes = (player: Player) => {
+    if (!currentPlayer) return false;
+    
+    const currentPlayerAnimalTypes = new Set(
+      currentPlayer.hand
+        .filter((card: any) => card.type === 'animal')
+        .map((card: any) => card.name)
+    );
+    
+    const otherPlayerAnimalTypes = new Set(
+      player.hand
+        .filter((card: any) => card.type === 'animal')
+        .map((card: any) => card.name)
+    );
+    
+    // Check if there's any overlap in animal types
+    for (const animalType of currentPlayerAnimalTypes) {
+      if (otherPlayerAnimalTypes.has(animalType)) {
+        return true;
+      }
+    }
+    
+    return false;
+  };
+
+  // Helper function to get animal cards that can be traded with a specific partner
+  const getTradeableAnimalCards = (partner: Player) => {
+    if (!currentPlayer) return [];
+    
+    // Count how many of each animal type the partner has
+    const partnerAnimalCounts: { [key: string]: number } = {};
+    partner.hand
+      .filter((card: any) => card.type === 'animal')
+      .forEach((card: any) => {
+        partnerAnimalCounts[card.name] = (partnerAnimalCounts[card.name] || 0) + 1;
+      });
+    
+    // Count how many of each animal type the current player has
+    const currentPlayerAnimalCounts: { [key: string]: number } = {};
+    currentPlayer.hand
+      .filter((card: any) => card.type === 'animal')
+      .forEach((card: any) => {
+        currentPlayerAnimalCounts[card.name] = (currentPlayerAnimalCounts[card.name] || 0) + 1;
+      });
+    
+    // Get the minimum count for each shared animal type
+    const tradeableCounts: { [key: string]: number } = {};
+    Object.keys(partnerAnimalCounts).forEach(animalType => {
+      if (currentPlayerAnimalCounts[animalType]) {
+        tradeableCounts[animalType] = Math.min(
+          partnerAnimalCounts[animalType],
+          currentPlayerAnimalCounts[animalType]
+        );
+      }
+    });
+    
+    // Build the list of tradeable cards, limited by the minimum count
+    const tradeableCards: any[] = [];
+    const usedCounts: { [key: string]: number } = {};
+    
+    currentPlayer.hand
+      .filter((card: any) => card.type === 'animal')
+      .forEach((card: any) => {
+        const animalType = card.name;
+        if (tradeableCounts[animalType]) {
+          const usedCount = usedCounts[animalType] || 0;
+          if (usedCount < tradeableCounts[animalType]) {
+            tradeableCards.push(card);
+            usedCounts[animalType] = usedCount + 1;
+          }
+        }
+      });
+    
+    return tradeableCards;
+  };
 
   const handleCardClick = (cardId: string, cardType: 'animal' | 'money') => {
     if (gameState.tradeState !== 'making_offers') return;
@@ -91,12 +168,35 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         🎯 Your Turn - Initiate Trade
       </h3>
       <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-        Select a player to trade with
+        Select a player to trade with (only players with same animal types)
       </p>
       <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        {gameState.players
-          .filter(player => player.id !== currentPlayerId)
-          .map(player => (
+        {(() => {
+          const availablePlayers = gameState.players
+            .filter(player => player.id !== currentPlayerId)
+            .filter(player => hasSameAnimalTypes(player));
+          
+          if (availablePlayers.length === 0) {
+            return (
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#ffebee',
+                borderRadius: '6px',
+                border: '1px solid #f44336',
+                color: '#d32f2f',
+                textAlign: 'center'
+              }}>
+                <p style={{ margin: '0', fontWeight: 'bold' }}>
+                  No players available for trading
+                </p>
+                <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+                  You can only trade with players who have the same animal types as you.
+                </p>
+              </div>
+            );
+          }
+          
+          return availablePlayers.map(player => (
             <button
               key={player.id}
               onClick={() => handleInitiateTrade(player.id)}
@@ -113,7 +213,8 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             >
               Trade with {player.name}
             </button>
-          ))}
+          ));
+        })()}
       </div>
     </div>
   );
@@ -152,9 +253,29 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   );
 
   const renderMakingOffers = () => {
-    const partner = gameState.players.find(p => p.id === gameState.tradePartner);
-    const myAnimalCards = currentPlayer?.hand.filter(card => card.type === 'animal') || [];
+    // Determine the correct partner based on who is viewing the panel
+    let partner;
+    if (currentPlayerId === gameState.tradePartner) {
+      // Current player is the trade partner, so the partner is the initiator
+      partner = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    } else {
+      // Current player is the initiator, so the partner is the trade partner
+      partner = gameState.players.find(p => p.id === gameState.tradePartner);
+    }
+    
+    const myAnimalCards = partner ? getTradeableAnimalCards(partner) : [];
     const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
+
+    console.log('renderMakingOffers debug:', {
+      currentPlayerId,
+      currentPlayer: currentPlayer?.name,
+      tradeInitiator: gameState.tradeInitiator,
+      tradePartner: gameState.tradePartner,
+      actualPartner: partner?.name,
+      myAnimalCards: myAnimalCards.map(card => card.name),
+      currentPlayerAllAnimals: currentPlayer?.hand.filter(card => card.type === 'animal').map(card => card.name),
+      partnerAllAnimals: partner?.hand.filter(card => card.type === 'animal').map(card => card.name)
+    });
 
     return (
       <div style={{
@@ -167,25 +288,42 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           💰 Making Trade Offer
         </h3>
         <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-          Select animal cards and money cards to offer to {partner?.name}
+          Select animal cards (only shared types) and money cards to offer to {partner?.name}
         </p>
 
         {/* Animal Cards Selection */}
         <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Animal Cards:</h4>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-            {myAnimalCards.map(card => (
-              <CardComponent
-                key={card.id}
-                card={card}
-                selected={selectedAnimalCards.includes(card.id)}
-                onClick={() => handleCardClick(card.id, 'animal')}
-              />
-            ))}
-          </div>
-          <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
-            Selected: {selectedAnimalCards.length} cards
-          </p>
+          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Animal Cards (Shared Types Only):</h4>
+          {myAnimalCards.length === 0 ? (
+            <div style={{
+              padding: '12px',
+              backgroundColor: '#ffebee',
+              borderRadius: '4px',
+              border: '1px solid #f44336',
+              color: '#d32f2f',
+              textAlign: 'center'
+            }}>
+              <p style={{ margin: '0', fontSize: '14px' }}>
+                No shared animal types with {partner?.name}
+              </p>
+            </div>
+          ) : (
+            <>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                {myAnimalCards.map(card => (
+                  <CardComponent
+                    key={card.id}
+                    card={card}
+                    selected={selectedAnimalCards.includes(card.id)}
+                    onClick={() => handleCardClick(card.id, 'animal')}
+                  />
+                ))}
+              </div>
+              <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+                Selected: {selectedAnimalCards.length} cards
+              </p>
+            </>
+          )}
         </div>
 
         {/* Money Cards Selection */}

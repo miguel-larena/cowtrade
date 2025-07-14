@@ -11,18 +11,19 @@ export const useGameState = () => {
   // Phase management
   const changePhase = useCallback((newPhase: GamePhase) => {
     setGameState(prev => {
-      // Filter animal cards for auction selection
-      const animalCards = prev.deck.filter(card => card.type === 'animal');
-      
       return {
         ...prev,
         currentPhase: newPhase,
         currentBid: 0,
         currentBidder: null,
-        auctionCard: newPhase === 'auction' && animalCards.length > 0 
-          ? animalCards[Math.floor(Math.random() * animalCards.length)] 
-          : undefined,
-        disqualifiedPlayers: newPhase === 'auction' ? [] : prev.disqualifiedPlayers // Reset disqualified players when entering auction phase
+        auctionCard: undefined, // No auction card when switching phases
+        disqualifiedPlayers: newPhase === 'auction' ? [] : prev.disqualifiedPlayers, // Reset disqualified players when entering auction phase
+        // Reset trading state when changing phases
+        tradeState: 'none',
+        tradeInitiator: null,
+        tradePartner: null,
+        tradeOffers: [],
+        tradeConfirmed: false
       };
     });
   }, []);

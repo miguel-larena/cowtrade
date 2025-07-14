@@ -73,7 +73,7 @@ export const moneyCards: Card[] = [
   { id: '500', type: 'money', value: 500, name: '500' },
 ];
 
-// Test players
+// Test players with comprehensive trade test cases
 export const testPlayers: Player[] = [
   {
     id: 'player1',
@@ -87,7 +87,11 @@ export const testPlayers: Player[] = [
       { id: 'money0_1_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_1_2', type: 'money', value: 0, name: '0' },
       { id: 'money50_1_1', type: 'money', value: 50, name: '50' },
-      { id: 'cow_1', type: 'animal', value: 1000, name: 'Cow' }
+      // Multiple animal types for testing various scenarios
+      { id: 'chicken_1', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'pig_1', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'cow_1', type: 'animal', value: 1000, name: 'Cow' },
+      { id: 'cat_1', type: 'animal', value: 90, name: 'Cat' }
     ],
     money: 100,
   },
@@ -102,7 +106,12 @@ export const testPlayers: Player[] = [
       { id: 'money0_2_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_2_2', type: 'money', value: 0, name: '0' },
       { id: 'money50_2_1', type: 'money', value: 50, name: '50' },
-      { id: 'cow_2', type: 'animal', value: 1000, name: 'Cow' }
+      // Multiple copies to test quantity limits
+      { id: 'chicken_2', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'chicken_3', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'pig_2', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'cow_2', type: 'animal', value: 1000, name: 'Cow' },
+      { id: 'dog_1', type: 'animal', value: 160, name: 'Dog' }
     ],
     money: 90,
   },
@@ -112,7 +121,12 @@ export const testPlayers: Player[] = [
     hand: [
       { id: 'money0_3_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_3_2', type: 'money', value: 0, name: '0' },
-      { id: 'cow_3', type: 'animal', value: 1000, name: 'Cow' }
+      // Multiple copies of shared animals
+      { id: 'cat_2', type: 'animal', value: 90, name: 'Cat' },
+      { id: 'cat_3', type: 'animal', value: 90, name: 'Cat' },
+      { id: 'pig_3', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'pig_4', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'sheep_1', type: 'animal', value: 250, name: 'Sheep' }
     ],
     money: 0,
   },
@@ -127,18 +141,65 @@ export const testPlayers: Player[] = [
       { id: 'money0_4_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_4_2', type: 'money', value: 0, name: '0' },
       { id: 'money50_4_1', type: 'money', value: 50, name: '50' },
-      { id: 'cow_4', type: 'animal', value: 1000, name: 'Cow' }
+      // Completely different animals - edge case for no shared types
+      { id: 'donkey_1', type: 'animal', value: 500, name: 'Donkey' },
+      { id: 'bull_1', type: 'animal', value: 800, name: 'Bull' },
+      { id: 'goat_1', type: 'animal', value: 350, name: 'Goat' }
     ],
     money: 90,
+  },
+  {
+    id: 'player5',
+    name: 'Eve',
+    hand: [
+      { id: 'money10_5_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_5_2', type: 'money', value: 10, name: '10' },
+      { id: 'money0_5_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_5_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_5_1', type: 'money', value: 50, name: '50' },
+      // Edge case: No animal cards at all
+    ],
+    money: 80,
+  },
+  {
+    id: 'player6',
+    name: 'Frank',
+    hand: [
+      { id: 'money10_6_1', type: 'money', value: 10, name: '10' },
+      { id: 'money10_6_2', type: 'money', value: 10, name: '10' },
+      { id: 'money0_6_1', type: 'money', value: 0, name: '0' },
+      { id: 'money0_6_2', type: 'money', value: 0, name: '0' },
+      { id: 'money50_6_1', type: 'money', value: 50, name: '50' },
+      // Many copies to test quantity limits
+      { id: 'chicken_5', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'chicken_6', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'chicken_7', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'chicken_8', type: 'animal', value: 10, name: 'Chicken' },
+      { id: 'pig_6', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'pig_7', type: 'animal', value: 650, name: 'Pig' },
+      { id: 'cow_3', type: 'animal', value: 1000, name: 'Cow' }
+    ],
+    money: 70,
   },
 ];
 
 // Test game state
 export const testGameState: GameState = {
   players: testPlayers,
-  // Remove the cow cards given to players from the deck
+  // Remove the animal cards given to players from the deck
   deck: [
-    ...animalCards.filter(card => !(card.name === 'Cow' && ['cow_1','cow_2','cow_3','cow_4'].includes(card.id))),
+    ...animalCards.filter(card => !([
+      // Alice's cards
+      'chicken_1', 'pig_1', 'cow_1', 'cat_1',
+      // Bob's cards  
+      'chicken_2', 'chicken_3', 'pig_2', 'cow_2', 'dog_1',
+      // Charlie's cards
+      'cat_2', 'cat_3', 'pig_3', 'pig_4', 'sheep_1',
+      // Darla's cards
+      'donkey_1', 'bull_1', 'goat_1',
+      // Frank's cards
+      'chicken_5', 'chicken_6', 'chicken_7', 'chicken_8', 'pig_6', 'pig_7', 'cow_3'
+    ].includes(card.id))),
     ...moneyCards
   ], // Full deck for reference
   currentTurn: 'player1',
