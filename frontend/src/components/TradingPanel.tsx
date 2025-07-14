@@ -114,11 +114,28 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     if (gameState.tradeState !== 'making_offers') return;
 
     if (cardType === 'animal') {
-      setSelectedAnimalCards(prev => 
-        prev.includes(cardId) 
-          ? prev.filter(id => id !== cardId)
-          : [...prev, cardId]
-      );
+      const clickedCard = currentPlayer?.hand.find(card => card.id === cardId);
+      if (!clickedCard) return;
+
+      setSelectedAnimalCards(prev => {
+        // If clicking the same card, toggle it
+        if (prev.includes(cardId)) {
+          return prev.filter(id => id !== cardId);
+        }
+        
+        // If clicking a different animal type, replace all selected animals
+        const selectedCardTypes = prev.map(id => 
+          currentPlayer?.hand.find(card => card.id === id)?.name
+        ).filter(Boolean);
+        
+        if (selectedCardTypes.length > 0 && !selectedCardTypes.includes(clickedCard.name)) {
+          // Different animal type - replace all selected animals with this one
+          return [cardId];
+        } else {
+          // Same animal type or no animals selected - add to selection
+          return [...prev, cardId];
+        }
+      });
     } else {
       setSelectedMoneyCards(prev => 
         prev.includes(cardId) 
@@ -288,12 +305,12 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           💰 Making Trade Offer
         </h3>
         <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-          Select animal cards (only shared types) and money cards to offer to {partner?.name}
+          Select animal cards (one type only, shared with {partner?.name}) and money cards to offer
         </p>
 
         {/* Animal Cards Selection */}
         <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Animal Cards (Shared Types Only):</h4>
+          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Animal Cards (One Type Only):</h4>
           {myAnimalCards.length === 0 ? (
             <div style={{
               padding: '12px',
