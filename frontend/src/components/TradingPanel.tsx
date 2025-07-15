@@ -6,7 +6,8 @@ interface TradingPanelProps {
   gameState: GameState;
   currentPlayerId: string;
   onSelectTradePartner: (partnerId: string) => void;
-  onMakeTradeOffer: (playerId: string, animalCards: string[], moneyCards: string[]) => void;
+  onSelectAnimalCardsForTrade: (animalCards: string[]) => void;
+  onMakeTradeOffer: (playerId: string, moneyCards: string[]) => void;
   onConfirmTrade: (playerId: string) => void;
   onExecuteTrade: () => void;
   onCancelTrade: () => void;
@@ -17,6 +18,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   gameState,
   currentPlayerId,
   onSelectTradePartner,
+  onSelectAnimalCardsForTrade,
   onMakeTradeOffer,
   onConfirmTrade,
   onExecuteTrade,
@@ -29,6 +31,8 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const isCurrentPlayerTurn = gameState.currentTurn === currentPlayerId;
   const canInitiateTrade = isCurrentPlayerTurn && gameState.tradeState === 'none';
+  const isChallenger = currentPlayerId === gameState.tradeInitiator;
+  const isChallenged = currentPlayerId === gameState.tradePartner;
 
   const currentOffer = gameState.tradeOffers.find(offer => offer.playerId === currentPlayerId);
   const otherOffer = gameState.tradeOffers.find(offer => offer.playerId !== currentPlayerId);
@@ -59,97 +63,54 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     return false;
   };
 
-  // Helper function to get animal cards that can be traded with a specific partner
-  const getTradeableAnimalCards = (partner: Player) => {
-    if (!currentPlayer) return [];
-    
-    // Count how many of each animal type the partner has
-    const partnerAnimalCounts: { [key: string]: number } = {};
-    partner.hand
-      .filter((card: any) => card.type === 'animal')
-      .forEach((card: any) => {
-        partnerAnimalCounts[card.name] = (partnerAnimalCounts[card.name] || 0) + 1;
-      });
-    
-    // Count how many of each animal type the current player has
-    const currentPlayerAnimalCounts: { [key: string]: number } = {};
-    currentPlayer.hand
-      .filter((card: any) => card.type === 'animal')
-      .forEach((card: any) => {
-        currentPlayerAnimalCounts[card.name] = (currentPlayerAnimalCounts[card.name] || 0) + 1;
-      });
-    
-    // Get the minimum count for each shared animal type
-    const tradeableCounts: { [key: string]: number } = {};
-    Object.keys(partnerAnimalCounts).forEach(animalType => {
-      if (currentPlayerAnimalCounts[animalType]) {
-        tradeableCounts[animalType] = Math.min(
-          partnerAnimalCounts[animalType],
-          currentPlayerAnimalCounts[animalType]
-        );
+  const handleAnimalCardClick = (cardId: string) => {
+    if (gameState.tradeState !== 'challenger_selecting_cards' || !isChallenger) return;
+
+    const clickedCard = currentPlayer?.hand.find(card => card.id === cardId);
+    if (!clickedCard || clickedCard.type !== 'animal') return;
+
+    setSelectedAnimalCards(prev => {
+      // If clicking the same card, toggle it
+      if (prev.includes(cardId)) {
+        return prev.filter(id => id !== cardId);
+      }
+      
+      // If clicking a different animal type, replace all selected animals
+      const selectedCardTypes = prev.map(id => 
+        currentPlayer?.hand.find(card => card.id === id)?.name
+      ).filter(Boolean);
+      
+      if (selectedCardTypes.length > 0 && !selectedCardTypes.includes(clickedCard.name)) {
+        // Different animal type - replace all selected animals with this one
+        return [cardId];
+      } else {
+        // Same animal type or no animals selected - add to selection
+        return [...prev, cardId];
       }
     });
-    
-    // Build the list of tradeable cards, limited by the minimum count
-    const tradeableCards: any[] = [];
-    const usedCounts: { [key: string]: number } = {};
-    
-    currentPlayer.hand
-      .filter((card: any) => card.type === 'animal')
-      .forEach((card: any) => {
-        const animalType = card.name;
-        if (tradeableCounts[animalType]) {
-          const usedCount = usedCounts[animalType] || 0;
-          if (usedCount < tradeableCounts[animalType]) {
-            tradeableCards.push(card);
-            usedCounts[animalType] = usedCount + 1;
-          }
-        }
-      });
-    
-    return tradeableCards;
   };
 
-  const handleCardClick = (cardId: string, cardType: 'animal' | 'money') => {
+  const handleMoneyCardClick = (cardId: string) => {
     if (gameState.tradeState !== 'making_offers') return;
 
-    if (cardType === 'animal') {
-      const clickedCard = currentPlayer?.hand.find(card => card.id === cardId);
-      if (!clickedCard) return;
-
-      setSelectedAnimalCards(prev => {
-        // If clicking the same card, toggle it
-        if (prev.includes(cardId)) {
-          return prev.filter(id => id !== cardId);
-        }
-        
-        // If clicking a different animal type, replace all selected animals
-        const selectedCardTypes = prev.map(id => 
-          currentPlayer?.hand.find(card => card.id === id)?.name
-        ).filter(Boolean);
-        
-        if (selectedCardTypes.length > 0 && !selectedCardTypes.includes(clickedCard.name)) {
-          // Different animal type - replace all selected animals with this one
-          return [cardId];
-        } else {
-          // Same animal type or no animals selected - add to selection
-          return [...prev, cardId];
-        }
-      });
-    } else {
-      setSelectedMoneyCards(prev => 
-        prev.includes(cardId) 
-          ? prev.filter(id => id !== cardId)
-          : [...prev, cardId]
-      );
-    }
+    setSelectedMoneyCards(prev => 
+      prev.includes(cardId) 
+        ? prev.filter(id => id !== cardId)
+        : [...prev, cardId]
+    );
   };
 
-  const handleSubmitOffer = () => {
+  const handleSubmitAnimalSelection = () => {
     if (selectedAnimalCards.length === 0) return;
     
-    onMakeTradeOffer(currentPlayerId, selectedAnimalCards, selectedMoneyCards);
+    onSelectAnimalCardsForTrade(selectedAnimalCards);
     setSelectedAnimalCards([]);
+  };
+
+  const handleSubmitMoneyOffer = () => {
+    if (selectedMoneyCards.length === 0) return;
+    
+    onMakeTradeOffer(currentPlayerId, selectedMoneyCards);
     setSelectedMoneyCards([]);
   };
 
@@ -236,81 +197,28 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     </div>
   );
 
-  const renderTradePartner = () => (
-    <div style={{
-      padding: '20px',
-      backgroundColor: '#fff3cd',
-      borderRadius: '8px',
-      border: '2px solid #ffc107',
-      textAlign: 'center'
-    }}>
-      <h3 style={{ margin: '0 0 16px 0', color: '#856404' }}>
-        🤝 Trade Partner Selected
-      </h3>
-      <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-        {gameState.tradeInitiator && gameState.players.find(p => p.id === gameState.tradeInitiator)?.name} 
-        wants to trade with {gameState.tradePartner && gameState.players.find(p => p.id === gameState.tradePartner)?.name}
-      </p>
-      <button
-        onClick={() => onSelectTradePartner(gameState.tradePartner!)}
-        style={{
-          padding: '12px 20px',
-          backgroundColor: '#FF9800',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '14px',
-          fontWeight: 'bold'
-        }}
-      >
-        Accept Trade
-      </button>
-    </div>
-  );
-
-  const renderMakingOffers = () => {
-    // Determine the correct partner based on who is viewing the panel
-    let partner;
-    if (currentPlayerId === gameState.tradePartner) {
-      // Current player is the trade partner, so the partner is the initiator
-      partner = gameState.players.find(p => p.id === gameState.tradeInitiator);
-    } else {
-      // Current player is the initiator, so the partner is the trade partner
-      partner = gameState.players.find(p => p.id === gameState.tradePartner);
-    }
-    
-    const myAnimalCards = partner ? getTradeableAnimalCards(partner) : [];
-    const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
-
-    console.log('renderMakingOffers debug:', {
-      currentPlayerId,
-      currentPlayer: currentPlayer?.name,
-      tradeInitiator: gameState.tradeInitiator,
-      tradePartner: gameState.tradePartner,
-      actualPartner: partner?.name,
-      myAnimalCards: myAnimalCards.map(card => card.name),
-      currentPlayerAllAnimals: currentPlayer?.hand.filter(card => card.type === 'animal').map(card => card.name),
-      partnerAllAnimals: partner?.hand.filter(card => card.type === 'animal').map(card => card.name)
-    });
+  const renderChallengerSelectingCards = () => {
+    const partner = gameState.players.find(p => p.id === gameState.tradePartner);
+    const myAnimalCards = currentPlayer?.hand.filter(card => card.type === 'animal') || [];
 
     return (
       <div style={{
         padding: '20px',
-        backgroundColor: '#f0f8ff',
+        backgroundColor: '#fff3cd',
         borderRadius: '8px',
-        border: '2px solid #2196F3'
+        border: '2px solid #ffc107'
       }}>
-        <h3 style={{ margin: '0 0 16px 0', color: '#1976D2' }}>
-          💰 Making Trade Offer
+        <h3 style={{ margin: '0 0 16px 0', color: '#856404' }}>
+          🎯 Select Animal Cards to Trade
         </h3>
         <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-          Select animal cards (one type only, shared with {partner?.name}) and money cards to offer
+          Choose which animal cards to trade with {partner?.name}. 
+          {partner?.name} must offer the same animal types.
         </p>
 
         {/* Animal Cards Selection */}
         <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Animal Cards (One Type Only):</h4>
+          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Select Animal Cards (One Type Only):</h4>
           {myAnimalCards.length === 0 ? (
             <div style={{
               padding: '12px',
@@ -321,7 +229,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               textAlign: 'center'
             }}>
               <p style={{ margin: '0', fontSize: '14px' }}>
-                No shared animal types with {partner?.name}
+                No animal cards available
               </p>
             </div>
           ) : (
@@ -332,7 +240,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                     key={card.id}
                     card={card}
                     selected={selectedAnimalCards.includes(card.id)}
-                    onClick={() => handleCardClick(card.id, 'animal')}
+                    onClick={() => handleAnimalCardClick(card.id)}
                   />
                 ))}
               </div>
@@ -343,6 +251,52 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           )}
         </div>
 
+        {/* Submit Button */}
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={handleSubmitAnimalSelection}
+            disabled={selectedAnimalCards.length === 0}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: selectedAnimalCards.length > 0 ? '#ffc107' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: selectedAnimalCards.length > 0 ? 'pointer' : 'not-allowed',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Confirm Animal Selection
+          </button>
+        </div>
+      </div>
+    );
+  };
+
+  const renderMakingOffers = () => {
+    const partner = gameState.players.find(p => 
+      p.id === (isChallenger ? gameState.tradePartner : gameState.tradeInitiator)
+    );
+    const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
+
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#f0f8ff',
+        borderRadius: '8px',
+        border: '2px solid #2196F3'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#1976D2' }}>
+          💰 {isChallenger ? 'Make Your Bid' : 'Respond to Trade Challenge'}
+        </h3>
+        <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+          {isChallenger 
+            ? `Select money cards to bid for all ${gameState.selectedAnimalCards.length} animal cards`
+            : `${gameState.tradeInitiator && gameState.players.find(p => p.id === gameState.tradeInitiator)?.name} selected ${gameState.selectedAnimalCards.length} animal cards. Select money cards to bid.`
+          }
+        </p>
+
         {/* Money Cards Selection */}
         <div style={{ marginBottom: '20px' }}>
           <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Money Cards (Face-down):</h4>
@@ -352,7 +306,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                 key={card.id}
                 card={card}
                 selected={selectedMoneyCards.includes(card.id)}
-                onClick={() => handleCardClick(card.id, 'money')}
+                onClick={() => handleMoneyCardClick(card.id)}
               />
             ))}
           </div>
@@ -367,20 +321,20 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         {/* Submit Button */}
         <div style={{ textAlign: 'center' }}>
           <button
-            onClick={handleSubmitOffer}
-            disabled={selectedAnimalCards.length === 0}
+            onClick={handleSubmitMoneyOffer}
+            disabled={selectedMoneyCards.length === 0}
             style={{
               padding: '12px 24px',
-              backgroundColor: selectedAnimalCards.length > 0 ? '#2196F3' : '#ccc',
+              backgroundColor: selectedMoneyCards.length > 0 ? '#2196F3' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: selectedAnimalCards.length > 0 ? 'pointer' : 'not-allowed',
+              cursor: selectedMoneyCards.length > 0 ? 'pointer' : 'not-allowed',
               fontSize: '16px',
               fontWeight: 'bold'
             }}
           >
-            Submit Offer
+            Submit Bid
           </button>
         </div>
 
@@ -393,7 +347,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             border: '1px solid #2196F3'
           }}>
             <p style={{ margin: '0', fontSize: '14px', color: '#1976D2' }}>
-              ✅ Your offer submitted: {currentOffer.animalCards.length} animal cards, {currentOffer.moneyCards.length} money cards (${currentOffer.totalValue})
+              ✅ Your bid submitted: {currentOffer.moneyCards.length} money cards (${currentOffer.totalValue})
             </p>
           </div>
         )}
@@ -402,7 +356,9 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   };
 
   const renderConfirmingTrade = () => {
-    const partner = gameState.players.find(p => p.id === gameState.tradePartner);
+    const partner = gameState.players.find(p => 
+      p.id === (isChallenger ? gameState.tradePartner : gameState.tradeInitiator)
+    );
     const myOffer = currentOffer;
     const partnerOffer = otherOffer;
 
@@ -429,12 +385,9 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               borderRadius: '4px',
               border: '1px solid #4CAF50'
             }}>
-              <h5 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>Your Offer:</h5>
+              <h5 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>Your Bid:</h5>
               {myOffer && (
                 <div>
-                  <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                    Animal Cards: {myOffer.animalCards.length}
-                  </p>
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>
                     Money Cards: {myOffer.moneyCards.length} (${myOffer.totalValue})
                   </p>
@@ -449,12 +402,9 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               borderRadius: '4px',
               border: '1px solid #ffc107'
             }}>
-              <h5 style={{ margin: '0 0 8px 0', color: '#856404' }}>{partner?.name}'s Offer:</h5>
+              <h5 style={{ margin: '0 0 8px 0', color: '#856404' }}>{partner?.name}'s Bid:</h5>
               {partnerOffer && (
                 <div>
-                  <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                    Animal Cards: {partnerOffer.animalCards.length}
-                  </p>
                   <p style={{ margin: '4px 0', fontSize: '14px' }}>
                     Money Cards: {partnerOffer.moneyCards.length} (${partnerOffer.totalValue})
                   </p>
@@ -462,57 +412,66 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               )}
             </div>
           </div>
-        </div>
 
-        {/* Validation */}
-        {myOffer && partnerOffer && (
-          <div style={{ marginBottom: '16px' }}>
-            {myOffer.animalCards.length === partnerOffer.animalCards.length ? (
-              <div style={{ color: '#4CAF50', fontWeight: 'bold' }}>
-                ✅ Valid trade: Both players offering {myOffer.animalCards.length} animal cards
-              </div>
-            ) : (
-              <div style={{ color: '#F44336', fontWeight: 'bold' }}>
-                ❌ Invalid trade: Different number of animal cards
-              </div>
-            )}
-          </div>
-        )}
+          {/* Winner Display */}
+          {myOffer && partnerOffer && (
+            <div style={{
+              marginTop: '16px',
+              padding: '12px',
+              backgroundColor: myOffer.totalValue > partnerOffer.totalValue ? '#e8f5e8' : '#ffebee',
+              borderRadius: '4px',
+              border: `1px solid ${myOffer.totalValue > partnerOffer.totalValue ? '#4CAF50' : '#f44336'}`,
+              textAlign: 'center'
+            }}>
+              <p style={{ 
+                margin: '0', 
+                fontSize: '16px', 
+                fontWeight: 'bold',
+                color: myOffer.totalValue > partnerOffer.totalValue ? '#2E7D32' : '#d32f2f'
+              }}>
+                {myOffer.totalValue > partnerOffer.totalValue ? '🏆 You Win!' : '❌ You Lose'}
+              </p>
+              <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
+                {myOffer.totalValue > partnerOffer.totalValue 
+                  ? `You get all ${gameState.selectedAnimalCards.length} animal cards`
+                  : `${partner?.name} gets all ${gameState.selectedAnimalCards.length} animal cards`
+                }
+              </p>
+            </div>
+          )}
+        </div>
 
         {/* Action Buttons */}
         <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
           <button
             onClick={() => onConfirmTrade(currentPlayerId)}
-            disabled={gameState.tradeConfirmed}
             style={{
               padding: '12px 24px',
-              backgroundColor: gameState.tradeConfirmed ? '#ccc' : '#4CAF50',
+              backgroundColor: '#9C27B0',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: gameState.tradeConfirmed ? 'not-allowed' : 'pointer',
+              cursor: 'pointer',
               fontSize: '16px',
               fontWeight: 'bold'
             }}
           >
-            {gameState.tradeConfirmed ? 'Confirmed' : 'Confirm Trade'}
+            Confirm Trade
           </button>
-          
           <button
-            onClick={onExecuteTrade}
-            disabled={!gameState.tradeConfirmed}
+            onClick={onCancelTrade}
             style={{
               padding: '12px 24px',
-              backgroundColor: gameState.tradeConfirmed ? '#9C27B0' : '#ccc',
+              backgroundColor: '#f44336',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
-              cursor: gameState.tradeConfirmed ? 'pointer' : 'not-allowed',
+              cursor: 'pointer',
               fontSize: '16px',
               fontWeight: 'bold'
             }}
           >
-            Execute Trade
+            Cancel Trade
           </button>
         </div>
       </div>
@@ -528,89 +487,85 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
       textAlign: 'center'
     }}>
       <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
-        🎉 Trade Complete!
+        ✅ Trade Complete
       </h3>
       <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-        The trade has been executed successfully. Turn will progress to the next player.
+        The trade has been executed successfully.
       </p>
+      <button
+        onClick={onExecuteTrade}
+        style={{
+          padding: '12px 24px',
+          backgroundColor: '#4CAF50',
+          color: 'white',
+          border: 'none',
+          borderRadius: '6px',
+          cursor: 'pointer',
+          fontSize: '16px',
+          fontWeight: 'bold'
+        }}
+      >
+        Continue
+      </button>
     </div>
   );
 
-  return (
-    <div style={{
-      border: '2px solid #2196F3',
-      borderRadius: '8px',
-      padding: '20px',
-      margin: '16px',
-      backgroundColor: '#f0f8ff'
-    }}>
-      <h2 style={{ margin: '0 0 16px 0', color: '#1976D2' }}>
-        Trading Phase
-      </h2>
-
-      {/* Turn Indicator */}
-      <div style={{ 
-        marginBottom: '16px',
-        padding: '8px 12px',
-        backgroundColor: isCurrentPlayerTurn ? '#4CAF50' : '#f5f5f5',
-        borderRadius: '4px',
-        border: isCurrentPlayerTurn ? '2px solid #2E7D32' : '1px solid #ddd'
+  // Main render logic
+  if (!currentPlayer) {
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#ffebee',
+        borderRadius: '8px',
+        border: '2px solid #f44336',
+        textAlign: 'center'
       }}>
-        <div style={{ 
-          fontSize: '14px', 
-          fontWeight: 'bold',
-          color: isCurrentPlayerTurn ? 'white' : '#666'
-        }}>
-          Current Turn: {gameState.players.find(p => p.id === gameState.currentTurn)?.name || 'Unknown'}
-          {isCurrentPlayerTurn && (
-            <span style={{ marginLeft: '8px', fontSize: '12px' }}>
-              (Your Turn)
-            </span>
-          )}
-        </div>
+        <p style={{ margin: '0', color: '#d32f2f' }}>
+          Player not found
+        </p>
       </div>
+    );
+  }
 
-      {/* Trade State Display */}
-      {gameState.tradeState === 'none' && canInitiateTrade && renderTradeInitiator()}
-      {gameState.tradeState === 'selecting_partner' && renderTradePartner()}
-      {gameState.tradeState === 'making_offers' && renderMakingOffers()}
-      {gameState.tradeState === 'confirming_trade' && renderConfirmingTrade()}
-      {gameState.tradeState === 'trade_complete' && renderTradeComplete()}
-
-      {/* Cancel Button */}
-      {gameState.tradeState !== 'none' && gameState.tradeState !== 'trade_complete' && (
-        <div style={{ textAlign: 'center', marginTop: '16px' }}>
-          <button
-            onClick={onCancelTrade}
-            style={{
-              padding: '8px 16px',
-              backgroundColor: '#F44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontSize: '14px'
-            }}
-          >
-            Cancel Trade
-          </button>
-        </div>
-      )}
-
-      {/* Instructions */}
-      {gameState.tradeState === 'none' && !canInitiateTrade && (
+  // Render based on trade state
+  switch (gameState.tradeState) {
+    case 'none':
+      return canInitiateTrade ? renderTradeInitiator() : null;
+    
+    case 'selecting_partner':
+      return renderTradeInitiator();
+    
+    case 'challenger_selecting_cards':
+      return isChallenger ? renderChallengerSelectingCards() : (
         <div style={{
           padding: '20px',
-          backgroundColor: '#f5f5f5',
+          backgroundColor: '#fff3cd',
           borderRadius: '8px',
-          textAlign: 'center',
-          color: '#666'
+          border: '2px solid #ffc107',
+          textAlign: 'center'
         }}>
-          <p>Waiting for {gameState.players.find(p => p.id === gameState.currentTurn)?.name}'s turn to trade</p>
+          <h3 style={{ margin: '0 0 16px 0', color: '#856404' }}>
+            ⏳ Waiting for Challenger
+          </h3>
+          <p style={{ margin: '0', color: '#666' }}>
+            {gameState.tradeInitiator && gameState.players.find(p => p.id === gameState.tradeInitiator)?.name} 
+            is selecting animal cards to trade...
+          </p>
         </div>
-      )}
-    </div>
-  );
+      );
+    
+    case 'making_offers':
+      return renderMakingOffers();
+    
+    case 'confirming_trade':
+      return renderConfirmingTrade();
+    
+    case 'trade_complete':
+      return renderTradeComplete();
+    
+    default:
+      return null;
+  }
 };
 
 export default TradingPanel; 

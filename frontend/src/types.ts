@@ -1,7 +1,7 @@
 export type CardType = 'animal' | 'money';
 export type GamePhase = 'lobby' | 'auction' | 'trade' | 'end';
 export type AuctionState = 'none' | 'in_progress' | 'ended' | 'match_bid_phase';
-export type TradeState = 'none' | 'selecting_partner' | 'making_offers' | 'confirming_trade' | 'trade_complete';
+export type TradeState = 'none' | 'selecting_partner' | 'challenger_selecting_cards' | 'making_offers' | 'confirming_trade' | 'trade_complete';
 
 export interface Card {
   id: string;
@@ -39,8 +39,9 @@ export interface GameState {
   
   // Trading state
   tradeState: TradeState;
-  tradeInitiator: string | null; // player who initiated the trade
-  tradePartner: string | null; // player being traded with
+  tradeInitiator: string | null; // player who initiated the trade (challenger)
+  tradePartner: string | null; // player being traded with (challenged)
   tradeOffers: TradeOffer[]; // offers from both players
   tradeConfirmed: boolean; // whether both players confirmed the trade
+  selectedAnimalCards: string[]; // animal cards selected by challenger for the trade
 }

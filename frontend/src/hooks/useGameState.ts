@@ -23,7 +23,8 @@ export const useGameState = () => {
         tradeInitiator: null,
         tradePartner: null,
         tradeOffers: [],
-        tradeConfirmed: false
+        tradeConfirmed: false,
+        selectedAnimalCards: []
       };
     });
   }, []);
@@ -581,16 +582,17 @@ export const useGameState = () => {
         return prev; // Not their turn
       }
 
-      // If partnerId is provided, go directly to making_offers
+      // If partnerId is provided, go directly to challenger_selecting_cards
       if (partnerId) {
-        console.log('Going directly to making_offers with partner:', partnerId);
+        console.log('Going directly to challenger_selecting_cards with partner:', partnerId);
         return {
           ...prev,
-          tradeState: 'making_offers',
+          tradeState: 'challenger_selecting_cards',
           tradeInitiator: initiatorId,
           tradePartner: partnerId,
           tradeOffers: [],
-          tradeConfirmed: false
+          tradeConfirmed: false,
+          selectedAnimalCards: []
         };
       }
 
@@ -602,7 +604,8 @@ export const useGameState = () => {
         tradeInitiator: initiatorId,
         tradePartner: null,
         tradeOffers: [],
-        tradeConfirmed: false
+        tradeConfirmed: false,
+        selectedAnimalCards: []
       };
     });
   }, []);
@@ -615,13 +618,27 @@ export const useGameState = () => {
 
       return {
         ...prev,
-        tradeState: 'making_offers',
+        tradeState: 'challenger_selecting_cards',
         tradePartner: partnerId
       };
     });
   }, []);
 
-  const makeTradeOffer = useCallback((playerId: string, animalCards: string[], moneyCards: string[]) => {
+  const selectAnimalCardsForTrade = useCallback((animalCards: string[]) => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'challenger_selecting_cards') {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        selectedAnimalCards: animalCards,
+        tradeState: 'making_offers'
+      };
+    });
+  }, []);
+
+  const makeTradeOffer = useCallback((playerId: string, moneyCards: string[]) => {
     setGameState(prev => {
       if (prev.tradeState !== 'making_offers') {
         return prev;
@@ -635,7 +652,7 @@ export const useGameState = () => {
 
       const newOffer: TradeOffer = {
         playerId,
-        animalCards,
+        animalCards: playerId === prev.tradeInitiator ? prev.selectedAnimalCards : [], // Only challenger has animal cards
         moneyCards,
         totalValue
       };
@@ -687,59 +704,60 @@ export const useGameState = () => {
         return prev;
       }
 
-      // Validate trade: both players must trade same number of animal cards
-      const animalCardCount1 = offer1.animalCards.length;
-      const animalCardCount2 = offer2.animalCards.length;
+      // Determine winner based on money card offers
+      const winner = offer1.totalValue > offer2.totalValue ? player1 : player2;
+      const loser = winner.id === player1.id ? player2 : player1;
+      const winningOffer = winner.id === player1.id ? offer1 : offer2;
+      const losingOffer = winner.id === player1.id ? offer2 : offer1;
+
+      // Get all animal cards involved in the trade
+      const allAnimalCards = [...prev.selectedAnimalCards];
       
-      if (animalCardCount1 !== animalCardCount2 || (animalCardCount1 !== 2 && animalCardCount1 !== 4)) {
-        return prev; // Invalid trade
+      // Get animal cards from the challenged player (same types as challenger selected)
+      const challengedPlayer = prev.tradePartner ? prev.players.find(p => p.id === prev.tradePartner) : null;
+      if (challengedPlayer) {
+        const selectedAnimalTypes = new Set(
+          prev.selectedAnimalCards.map(cardId => 
+            prev.players.find(p => p.id === prev.tradeInitiator)?.hand.find(card => card.id === cardId)?.name
+          ).filter(Boolean)
+        );
+        
+        const challengedAnimalCards = challengedPlayer.hand
+          .filter(card => card.type === 'animal' && selectedAnimalTypes.has(card.name))
+          .slice(0, prev.selectedAnimalCards.length); // Same number as challenger selected
+        
+        allAnimalCards.push(...challengedAnimalCards.map(card => card.id));
       }
 
-      // Execute the trade
+      // Execute the trade - winner gets all animal cards, both players lose their money cards
       const updatedPlayers = prev.players.map(player => {
-        if (player.id === offer1.playerId) {
-          // Player 1 gives animal cards and money cards, receives player 2's offer
+        if (player.id === winner.id) {
+          // Winner gets all animal cards and keeps their remaining cards
           const newHand = player.hand.filter(card => 
-            !offer1.animalCards.includes(card.id) && 
-            !offer1.moneyCards.includes(card.id)
+            !winningOffer.moneyCards.includes(card.id)
           );
           
-          // Add player 2's animal cards
-          const player2AnimalCards = player2.hand.filter(card => 
-            offer2.animalCards.includes(card.id)
+          // Add all animal cards from both players
+          const allAnimalCardObjects = prev.players.flatMap(p => 
+            p.hand.filter(card => allAnimalCards.includes(card.id))
           );
           
-          // Add player 2's money cards
-          const player2MoneyCards = player2.hand.filter(card => 
-            offer2.moneyCards.includes(card.id)
-          );
-
           return {
             ...player,
-            hand: [...newHand, ...player2AnimalCards, ...player2MoneyCards]
+            hand: [...newHand, ...allAnimalCardObjects]
           };
         }
         
-        if (player.id === offer2.playerId) {
-          // Player 2 gives animal cards and money cards, receives player 1's offer
+        if (player.id === loser.id) {
+          // Loser loses their money cards and animal cards
           const newHand = player.hand.filter(card => 
-            !offer2.animalCards.includes(card.id) && 
-            !offer2.moneyCards.includes(card.id)
+            !losingOffer.moneyCards.includes(card.id) && 
+            !allAnimalCards.includes(card.id)
           );
           
-          // Add player 1's animal cards
-          const player1AnimalCards = player1.hand.filter(card => 
-            offer1.animalCards.includes(card.id)
-          );
-          
-          // Add player 1's money cards
-          const player1MoneyCards = player1.hand.filter(card => 
-            offer1.moneyCards.includes(card.id)
-          );
-
           return {
             ...player,
-            hand: [...newHand, ...player1AnimalCards, ...player1MoneyCards]
+            hand: newHand
           };
         }
         
@@ -754,7 +772,8 @@ export const useGameState = () => {
         ...prev,
         players: updatedPlayers,
         tradeState: 'trade_complete',
-        currentTurn: prev.players[nextIndex].id
+        currentTurn: prev.players[nextIndex].id,
+        selectedAnimalCards: []
       };
     });
   }, []);
@@ -766,7 +785,8 @@ export const useGameState = () => {
       tradeInitiator: null,
       tradePartner: null,
       tradeOffers: [],
-      tradeConfirmed: false
+      tradeConfirmed: false,
+      selectedAnimalCards: []
     }));
   }, []);
 
@@ -827,6 +847,7 @@ export const useGameState = () => {
     // Trading actions
     initiateTrade,
     selectTradePartner,
+    selectAnimalCardsForTrade,
     makeTradeOffer,
     confirmTrade,
     executeTrade,

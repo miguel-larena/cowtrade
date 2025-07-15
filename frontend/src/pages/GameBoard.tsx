@@ -23,7 +23,8 @@ interface GameBoardProps {
   onAddAnimalCards: () => void;
   onInitiateTrade: (initiatorId: string) => void;
   onSelectTradePartner: (partnerId: string) => void;
-  onMakeTradeOffer: (playerId: string, animalCards: string[], moneyCards: string[]) => void;
+  onSelectAnimalCardsForTrade: (animalCards: string[]) => void;
+  onMakeTradeOffer: (playerId: string, moneyCards: string[]) => void;
   onConfirmTrade: (playerId: string) => void;
   onExecuteTrade: () => void;
   onCancelTrade: () => void;
@@ -40,6 +41,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onMatchBid,
   onInitiateTrade,
   onSelectTradePartner,
+  onSelectAnimalCardsForTrade,
   onMakeTradeOffer,
   onConfirmTrade,
   onExecuteTrade,
@@ -86,6 +88,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
             currentPlayerId={testPlayerId}
             onInitiateTrade={onInitiateTrade}
             onSelectTradePartner={onSelectTradePartner}
+            onSelectAnimalCardsForTrade={onSelectAnimalCardsForTrade}
             onMakeTradeOffer={onMakeTradeOffer}
             onConfirmTrade={onConfirmTrade}
             onExecuteTrade={onExecuteTrade}

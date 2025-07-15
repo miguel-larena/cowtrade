@@ -23,6 +23,7 @@ function App() {
     addAnimalCards,
     initiateTrade,
     selectTradePartner,
+    selectAnimalCardsForTrade,
     makeTradeOffer,
     confirmTrade,
     executeTrade,
@@ -80,6 +81,7 @@ function App() {
             onAddAnimalCards={addAnimalCards}
             onInitiateTrade={initiateTrade}
             onSelectTradePartner={selectTradePartner}
+            onSelectAnimalCardsForTrade={selectAnimalCardsForTrade}
             onMakeTradeOffer={makeTradeOffer}
             onConfirmTrade={confirmTrade}
             onExecuteTrade={executeTrade}
