@@ -222,5 +222,6 @@ export const testGameState: GameState = {
   tradeInitiator: null,
   tradePartner: null,
   tradeOffers: [],
-  tradeConfirmed: false
+  tradeConfirmed: false,
+  selectedAnimalCards: []
 };

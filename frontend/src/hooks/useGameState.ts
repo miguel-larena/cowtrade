@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { testGameState, animalCards } from '../testData';
 import { placeBid, winAuction, tradeCards } from '../gameLogic';
-import type { GameState, Player, GamePhase, TradeOffer } from '../types';
+import type { GameState, Player, GamePhase, TradeOffer, TradeState } from '../types';
 import { selectPaymentCards } from '../utils/payment';
 
 export const useGameState = () => {
@@ -633,14 +633,21 @@ export const useGameState = () => {
       return {
         ...prev,
         selectedAnimalCards: animalCards,
-        tradeState: 'making_offers'
+        tradeState: 'challenger_bidding'
       };
     });
   }, []);
 
   const makeTradeOffer = useCallback((playerId: string, moneyCards: string[]) => {
     setGameState(prev => {
-      if (prev.tradeState !== 'making_offers') {
+      // Check if it's the correct player's turn to bid
+      if (prev.tradeState === 'challenger_bidding' && playerId !== prev.tradeInitiator) {
+        return prev; // Only challenger can bid in challenger_bidding state
+      }
+      if (prev.tradeState === 'challenged_bidding' && playerId !== prev.tradePartner) {
+        return prev; // Only challenged player can bid in challenged_bidding state
+      }
+      if (prev.tradeState !== 'challenger_bidding' && prev.tradeState !== 'challenged_bidding') {
         return prev;
       }
 
@@ -661,13 +668,129 @@ export const useGameState = () => {
       const updatedOffers = prev.tradeOffers.filter(offer => offer.playerId !== playerId);
       updatedOffers.push(newOffer);
 
-      // If both players have made offers, move to confirmation
-      const bothOffersMade = updatedOffers.length === 2;
+      // Determine next state based on who just bid
+      let nextState: TradeState;
+      if (prev.tradeState === 'challenger_bidding') {
+        // Challenger just bid, now it's challenged player's turn
+        nextState = 'challenged_bidding';
+      } else {
+        // Challenged player just bid, now both have bid - execute trade immediately
+        nextState = 'confirming_trade';
+        
+        // Execute the trade immediately since both players have bid
+        const [offer1, offer2] = updatedOffers;
+        const player1 = prev.players.find(p => p.id === offer1.playerId);
+        const player2 = prev.players.find(p => p.id === offer2.playerId);
+
+        if (!player1 || !player2) {
+          return {
+            ...prev,
+            tradeOffers: updatedOffers,
+            tradeState: nextState
+          };
+        }
+
+        // Check for tie - if both offers are the same value, restart the bidding
+        if (offer1.totalValue === offer2.totalValue) {
+          console.log('Trade tie detected - restarting bidding');
+          return {
+            ...prev,
+            tradeState: 'challenger_bidding',
+            tradeOffers: [],
+            tradeConfirmed: false
+          };
+        }
+
+        // Determine winner based on money card offers
+        const winner = offer1.totalValue > offer2.totalValue ? player1 : player2;
+        const loser = winner.id === player1.id ? player2 : player1;
+        const winningOffer = winner.id === player1.id ? offer1 : offer2;
+        const losingOffer = winner.id === player1.id ? offer2 : offer1;
+
+        // Get all animal cards involved in the trade
+        const allAnimalCards = [...prev.selectedAnimalCards];
+        
+        // Get animal cards from the challenged player (same types as challenger selected)
+        const challengedPlayer = prev.tradePartner ? prev.players.find(p => p.id === prev.tradePartner) : null;
+        if (challengedPlayer) {
+          const selectedAnimalTypes = new Set(
+            prev.selectedAnimalCards.map(cardId => 
+              prev.players.find(p => p.id === prev.tradeInitiator)?.hand.find(card => card.id === cardId)?.name
+            ).filter(Boolean)
+          );
+          
+          const challengedAnimalCards = challengedPlayer.hand
+            .filter(card => card.type === 'animal' && selectedAnimalTypes.has(card.name))
+            .slice(0, prev.selectedAnimalCards.length); // Same number as challenger selected
+          
+          allAnimalCards.push(...challengedAnimalCards.map(card => card.id));
+        }
+
+        // Execute the trade according to the new rules:
+        // 1. Winner gets all animal cards
+        // 2. Players exchange money cards (Alice gets Bob's money, Bob gets Alice's money)
+        const updatedPlayers = prev.players.map(player => {
+          if (player.id === winner.id) {
+            // Winner: lose their money cards, get all animal cards, get loser's money cards
+            const newHand = player.hand.filter(card => 
+              !winningOffer.moneyCards.includes(card.id)
+            );
+            
+            // Add all animal cards from both players
+            const allAnimalCardObjects = prev.players.flatMap(p => 
+              p.hand.filter(card => allAnimalCards.includes(card.id))
+            );
+            
+            // Add loser's money cards
+            const loserMoneyCardObjects = loser.hand.filter(card => 
+              losingOffer.moneyCards.includes(card.id)
+            );
+            
+            return {
+              ...player,
+              hand: [...newHand, ...allAnimalCardObjects, ...loserMoneyCardObjects]
+            };
+          }
+          
+          if (player.id === loser.id) {
+            // Loser: lose their money cards, lose their animal cards, get winner's money cards
+            const newHand = player.hand.filter(card => 
+              !losingOffer.moneyCards.includes(card.id) && 
+              !allAnimalCards.includes(card.id)
+            );
+            
+            // Add winner's money cards
+            const winnerMoneyCardObjects = winner.hand.filter(card => 
+              winningOffer.moneyCards.includes(card.id)
+            );
+            
+            return {
+              ...player,
+              hand: [...newHand, ...winnerMoneyCardObjects]
+            };
+          }
+          
+          return player;
+        });
+
+        // Progress to next turn after successful trade
+        const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
+        const nextIndex = (currentIndex + 1) % prev.players.length;
+
+        return {
+          ...prev,
+          players: updatedPlayers,
+          tradeState: 'trade_complete',
+          currentTurn: prev.players[nextIndex].id,
+          selectedAnimalCards: prev.selectedAnimalCards, // Preserve the animal cards for the summary
+          tradeOffers: updatedOffers // Preserve the offers for the summary
+        };
+      }
       
       return {
         ...prev,
         tradeOffers: updatedOffers,
-        tradeState: bothOffersMade ? 'confirming_trade' : 'making_offers'
+        tradeState: nextState
       };
     });
   }, []);
@@ -688,91 +811,18 @@ export const useGameState = () => {
 
   const executeTrade = useCallback(() => {
     setGameState(prev => {
-      if (prev.tradeState !== 'confirming_trade' || !prev.tradeConfirmed) {
+      if (prev.tradeState !== 'trade_complete') {
         return prev;
       }
 
-      if (prev.tradeOffers.length !== 2) {
-        return prev;
-      }
-
-      const [offer1, offer2] = prev.tradeOffers;
-      const player1 = prev.players.find(p => p.id === offer1.playerId);
-      const player2 = prev.players.find(p => p.id === offer2.playerId);
-
-      if (!player1 || !player2) {
-        return prev;
-      }
-
-      // Determine winner based on money card offers
-      const winner = offer1.totalValue > offer2.totalValue ? player1 : player2;
-      const loser = winner.id === player1.id ? player2 : player1;
-      const winningOffer = winner.id === player1.id ? offer1 : offer2;
-      const losingOffer = winner.id === player1.id ? offer2 : offer1;
-
-      // Get all animal cards involved in the trade
-      const allAnimalCards = [...prev.selectedAnimalCards];
-      
-      // Get animal cards from the challenged player (same types as challenger selected)
-      const challengedPlayer = prev.tradePartner ? prev.players.find(p => p.id === prev.tradePartner) : null;
-      if (challengedPlayer) {
-        const selectedAnimalTypes = new Set(
-          prev.selectedAnimalCards.map(cardId => 
-            prev.players.find(p => p.id === prev.tradeInitiator)?.hand.find(card => card.id === cardId)?.name
-          ).filter(Boolean)
-        );
-        
-        const challengedAnimalCards = challengedPlayer.hand
-          .filter(card => card.type === 'animal' && selectedAnimalTypes.has(card.name))
-          .slice(0, prev.selectedAnimalCards.length); // Same number as challenger selected
-        
-        allAnimalCards.push(...challengedAnimalCards.map(card => card.id));
-      }
-
-      // Execute the trade - winner gets all animal cards, both players lose their money cards
-      const updatedPlayers = prev.players.map(player => {
-        if (player.id === winner.id) {
-          // Winner gets all animal cards and keeps their remaining cards
-          const newHand = player.hand.filter(card => 
-            !winningOffer.moneyCards.includes(card.id)
-          );
-          
-          // Add all animal cards from both players
-          const allAnimalCardObjects = prev.players.flatMap(p => 
-            p.hand.filter(card => allAnimalCards.includes(card.id))
-          );
-          
-          return {
-            ...player,
-            hand: [...newHand, ...allAnimalCardObjects]
-          };
-        }
-        
-        if (player.id === loser.id) {
-          // Loser loses their money cards and animal cards
-          const newHand = player.hand.filter(card => 
-            !losingOffer.moneyCards.includes(card.id) && 
-            !allAnimalCards.includes(card.id)
-          );
-          
-          return {
-            ...player,
-            hand: newHand
-          };
-        }
-        
-        return player;
-      });
-
-      // Progress to next turn after successful trade
-      const currentIndex = prev.players.findIndex(p => p.id === prev.currentTurn);
-      const nextIndex = (currentIndex + 1) % prev.players.length;
-
+      // Clear the trade state and move to next turn
       return {
         ...prev,
-        players: updatedPlayers,
-        tradeState: 'trade_complete',
-        currentTurn: prev.players[nextIndex].id,
+        tradeState: 'none',
+        tradeInitiator: null,
+        tradePartner: null,
+        tradeOffers: [],
+        tradeConfirmed: false,
         selectedAnimalCards: []
       };
     });

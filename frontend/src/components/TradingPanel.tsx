@@ -91,7 +91,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   };
 
   const handleMoneyCardClick = (cardId: string) => {
-    if (gameState.tradeState !== 'making_offers') return;
+    if (gameState.tradeState !== 'challenger_bidding' && gameState.tradeState !== 'challenged_bidding') return;
 
     setSelectedMoneyCards(prev => 
       prev.includes(cardId) 
@@ -274,27 +274,22 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     );
   };
 
-  const renderMakingOffers = () => {
-    const partner = gameState.players.find(p => 
-      p.id === (isChallenger ? gameState.tradePartner : gameState.tradeInitiator)
-    );
+  const renderChallengerBidding = () => {
+    const partner = gameState.players.find(p => p.id === gameState.tradePartner);
     const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
 
     return (
       <div style={{
         padding: '20px',
-        backgroundColor: '#f0f8ff',
+        backgroundColor: '#e8f5e8',
         borderRadius: '8px',
-        border: '2px solid #2196F3'
+        border: '2px solid #4CAF50'
       }}>
-        <h3 style={{ margin: '0 0 16px 0', color: '#1976D2' }}>
-          💰 {isChallenger ? 'Make Your Bid' : 'Respond to Trade Challenge'}
+        <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
+          💰 Challenger's Turn - Make Your Bid
         </h3>
         <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-          {isChallenger 
-            ? `Select money cards to bid for all ${gameState.selectedAnimalCards.length} animal cards`
-            : `${gameState.tradeInitiator && gameState.players.find(p => p.id === gameState.tradeInitiator)?.name} selected ${gameState.selectedAnimalCards.length} animal cards. Select money cards to bid.`
-          }
+          Select money cards to bid for all {gameState.selectedAnimalCards.length} animal cards
         </p>
 
         {/* Money Cards Selection */}
@@ -325,7 +320,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             disabled={selectedMoneyCards.length === 0}
             style={{
               padding: '12px 24px',
-              backgroundColor: selectedMoneyCards.length > 0 ? '#2196F3' : '#ccc',
+              backgroundColor: selectedMoneyCards.length > 0 ? '#4CAF50' : '#ccc',
               color: 'white',
               border: 'none',
               borderRadius: '6px',
@@ -342,13 +337,328 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           <div style={{
             marginTop: '16px',
             padding: '12px',
-            backgroundColor: '#e3f2fd',
+            backgroundColor: '#e8f5e8',
             borderRadius: '4px',
-            border: '1px solid #2196F3'
+            border: '1px solid #4CAF50'
           }}>
-            <p style={{ margin: '0', fontSize: '14px', color: '#1976D2' }}>
+            <p style={{ margin: '0', fontSize: '14px', color: '#2E7D32' }}>
               ✅ Your bid submitted: {currentOffer.moneyCards.length} money cards (${currentOffer.totalValue})
             </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+  const renderChallengedBidding = () => {
+    const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    const challengerOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradeInitiator);
+    const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
+
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#fff3cd',
+        borderRadius: '8px',
+        border: '2px solid #ffc107'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#856404' }}>
+          💰 Challenged Player's Turn - Respond to Bid
+        </h3>
+        <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+          {challenger?.name} selected {gameState.selectedAnimalCards.length} animal cards and bid {challengerOffer?.moneyCards.length || 0} money cards.
+          Select your money cards to bid.
+        </p>
+        {(() => {
+          const animalCardTypes = new Set(
+            gameState.selectedAnimalCards.map(cardId => 
+              challenger?.hand.find(card => card.id === cardId)?.name
+            ).filter(Boolean)
+          );
+          if (animalCardTypes.size > 0) {
+            return (
+              <p style={{ margin: '8px 0 16px 0', fontSize: '14px', fontWeight: 'bold', color: '#856404' }}>
+                Animal type: {Array.from(animalCardTypes).join(', ')}
+              </p>
+            );
+          }
+          return null;
+        })()}
+
+        {/* Show challenger's bid cards (face-down) */}
+        {challengerOffer && (
+          <div style={{ marginBottom: '20px' }}>
+            <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>{challenger?.name}'s Bid Cards:</h4>
+            <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+              {challengerOffer.moneyCards.map((cardId, index) => (
+                <div
+                  key={index}
+                  style={{
+                    width: '60px',
+                    height: '80px',
+                    backgroundColor: '#666',
+                    border: '2px solid #333',
+                    borderRadius: '4px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    color: 'white',
+                    fontSize: '12px',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  ?
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Money Cards Selection */}
+        <div style={{ marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Your Money Cards (Face-down):</h4>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+            {myMoneyCards.map(card => (
+              <CardComponent
+                key={card.id}
+                card={card}
+                selected={selectedMoneyCards.includes(card.id)}
+                onClick={() => handleMoneyCardClick(card.id)}
+              />
+            ))}
+          </div>
+          <p style={{ fontSize: '12px', color: '#666', marginTop: '4px' }}>
+            Selected: {selectedMoneyCards.length} cards (Total: ${selectedMoneyCards.reduce((sum, cardId) => {
+              const card = myMoneyCards.find(c => c.id === cardId);
+              return sum + (card?.value || 0);
+            }, 0)})
+          </p>
+        </div>
+
+        {/* Submit Button */}
+        <div style={{ textAlign: 'center' }}>
+          <button
+            onClick={handleSubmitMoneyOffer}
+            disabled={selectedMoneyCards.length === 0}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: selectedMoneyCards.length > 0 ? '#ffc107' : '#ccc',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: selectedMoneyCards.length > 0 ? 'pointer' : 'not-allowed',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Submit Bid
+          </button>
+        </div>
+
+        {currentOffer && (
+          <div style={{
+            marginTop: '16px',
+            padding: '12px',
+            backgroundColor: '#fff3cd',
+            borderRadius: '4px',
+            border: '1px solid #ffc107'
+          }}>
+            <p style={{ margin: '0', fontSize: '14px', color: '#856404' }}>
+              ✅ Your bid submitted: {currentOffer.moneyCards.length} money cards (${currentOffer.totalValue})
+            </p>
+          </div>
+        )}
+      </div>
+    );
+  };
+
+    const renderSpectatorView = () => {
+    const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    const challenged = gameState.players.find(p => p.id === gameState.tradePartner);
+    const challengerOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradeInitiator);
+    const challengedOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradePartner);
+    const isCurrentPlayerChallenger = currentPlayerId === gameState.tradeInitiator;
+    const isCurrentPlayerChallenged = currentPlayerId === gameState.tradePartner;
+
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#f5f5f5',
+        borderRadius: '8px',
+        border: '2px solid #9e9e9e'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#424242' }}>
+          👀 Spectating Trade
+        </h3>
+        
+        {/* Trade Details */}
+        <div style={{ marginBottom: '20px' }}>
+          <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>Trade Details:</h4>
+          <p style={{ margin: '4px 0', fontSize: '14px' }}>
+            <strong>{challenger?.name}</strong> challenged <strong>{challenged?.name}</strong> to trade
+          </p>
+          <p style={{ margin: '4px 0', fontSize: '14px' }}>
+            Animal cards being traded: {gameState.selectedAnimalCards.length} cards
+          </p>
+          {(() => {
+            const animalCardTypes = new Set(
+              gameState.selectedAnimalCards.map(cardId => 
+                challenger?.hand.find(card => card.id === cardId)?.name
+            ).filter(Boolean)
+            );
+            if (animalCardTypes.size > 0) {
+              return (
+                <p style={{ margin: '4px 0', fontSize: '14px', fontWeight: 'bold', color: '#2E7D32' }}>
+                  Type: {Array.from(animalCardTypes).join(', ')}
+                </p>
+              );
+            }
+            return null;
+          })()}
+        </div>
+
+        {/* Bids Display */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px', marginBottom: '20px' }}>
+          {/* Challenger's Bid */}
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#e8f5e8',
+            borderRadius: '4px',
+            border: '1px solid #4CAF50'
+          }}>
+            <h5 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>{challenger?.name}'s Bid:</h5>
+            {challengerOffer ? (
+              <div>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Money Cards: {challengerOffer.moneyCards.length} (face-down)
+                  {isCurrentPlayerChallenger && (
+                    <span style={{ color: '#2E7D32', fontWeight: 'bold' }}>
+                      {' '}- Your bid: ${challengerOffer.totalValue}
+                    </span>
+                  )}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                  {challengerOffer.moneyCards.map((cardId, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        width: '40px',
+                        height: '50px',
+                        backgroundColor: '#666',
+                        border: '1px solid #333',
+                        borderRadius: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ?
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                Waiting for bid...
+              </p>
+            )}
+          </div>
+
+          {/* Challenged Player's Bid */}
+          <div style={{
+            padding: '12px',
+            backgroundColor: '#fff3cd',
+            borderRadius: '4px',
+            border: '1px solid #ffc107'
+          }}>
+            <h5 style={{ margin: '0 0 8px 0', color: '#856404' }}>{challenged?.name}'s Bid:</h5>
+            {challengedOffer ? (
+              <div>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Money Cards: {challengedOffer.moneyCards.length} (face-down)
+                  {isCurrentPlayerChallenged && (
+                    <span style={{ color: '#856404', fontWeight: 'bold' }}>
+                      {' '}- Your bid: ${challengedOffer.totalValue}
+                    </span>
+                  )}
+                </p>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
+                  {challengedOffer.moneyCards.map((cardId, index) => (
+                    <div
+                      key={index}
+                      style={{
+                        width: '40px',
+                        height: '50px',
+                        backgroundColor: '#666',
+                        border: '1px solid #333',
+                        borderRadius: '2px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        color: 'white',
+                        fontSize: '10px',
+                        fontWeight: 'bold'
+                      }}
+                    >
+                      ?
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <p style={{ margin: '4px 0', fontSize: '14px', color: '#666' }}>
+                Waiting for bid...
+              </p>
+            )}
+          </div>
+        </div>
+
+                          {/* Winner Display (if both have bid) */}
+        {challengerOffer && challengedOffer && (
+          <div style={{
+            padding: '12px',
+            backgroundColor: challengerOffer.totalValue === challengedOffer.totalValue ? '#ffebee' : 
+              challengerOffer.totalValue > challengedOffer.totalValue ? '#e8f5e8' : '#fff3cd',
+            borderRadius: '4px',
+            border: `1px solid ${challengerOffer.totalValue === challengedOffer.totalValue ? '#f44336' : 
+              challengerOffer.totalValue > challengedOffer.totalValue ? '#4CAF50' : '#ffc107'}`,
+            textAlign: 'center'
+          }}>
+            {challengerOffer.totalValue === challengedOffer.totalValue ? (
+              <>
+                <p style={{ 
+                  margin: '0', 
+                  fontSize: '16px', 
+                  fontWeight: 'bold',
+                  color: '#d32f2f'
+                }}>
+                  🎯 Tie! Trade will restart
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
+                  Both players bid the same amount
+                </p>
+              </>
+            ) : (
+              <>
+                <p style={{ 
+                  margin: '0', 
+                  fontSize: '16px', 
+                  fontWeight: 'bold',
+                  color: challengerOffer.totalValue > challengedOffer.totalValue ? '#2E7D32' : '#856404'
+                }}>
+                  {challengerOffer.totalValue > challengedOffer.totalValue ? `${challenger?.name} Wins!` : `${challenged?.name} Wins!`}
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
+                  Gets all {gameState.selectedAnimalCards.length} animal cards
+                </p>
+                <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                  Money cards exchanged between players
+                </p>
+              </>
+            )}
           </div>
         )}
       </div>
@@ -418,25 +728,48 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             <div style={{
               marginTop: '16px',
               padding: '12px',
-              backgroundColor: myOffer.totalValue > partnerOffer.totalValue ? '#e8f5e8' : '#ffebee',
+              backgroundColor: myOffer.totalValue === partnerOffer.totalValue ? '#ffebee' :
+                myOffer.totalValue > partnerOffer.totalValue ? '#e8f5e8' : '#ffebee',
               borderRadius: '4px',
-              border: `1px solid ${myOffer.totalValue > partnerOffer.totalValue ? '#4CAF50' : '#f44336'}`,
+              border: `1px solid ${myOffer.totalValue === partnerOffer.totalValue ? '#f44336' :
+                myOffer.totalValue > partnerOffer.totalValue ? '#4CAF50' : '#f44336'}`,
               textAlign: 'center'
             }}>
-              <p style={{ 
-                margin: '0', 
-                fontSize: '16px', 
-                fontWeight: 'bold',
-                color: myOffer.totalValue > partnerOffer.totalValue ? '#2E7D32' : '#d32f2f'
-              }}>
-                {myOffer.totalValue > partnerOffer.totalValue ? '🏆 You Win!' : '❌ You Lose'}
-              </p>
-              <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
-                {myOffer.totalValue > partnerOffer.totalValue 
-                  ? `You get all ${gameState.selectedAnimalCards.length} animal cards`
-                  : `${partner?.name} gets all ${gameState.selectedAnimalCards.length} animal cards`
-                }
-              </p>
+              {myOffer.totalValue === partnerOffer.totalValue ? (
+                <>
+                  <p style={{ 
+                    margin: '0', 
+                    fontSize: '16px', 
+                    fontWeight: 'bold',
+                    color: '#d32f2f'
+                  }}>
+                    🎯 Tie! Trade will restart
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
+                    Both players bid the same amount
+                  </p>
+                </>
+              ) : (
+                <>
+                  <p style={{ 
+                    margin: '0', 
+                    fontSize: '16px', 
+                    fontWeight: 'bold',
+                    color: myOffer.totalValue > partnerOffer.totalValue ? '#2E7D32' : '#d32f2f'
+                  }}>
+                    {myOffer.totalValue > partnerOffer.totalValue ? '🏆 You Win!' : '❌ You Lose'}
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
+                    {myOffer.totalValue > partnerOffer.totalValue 
+                      ? `You get all ${gameState.selectedAnimalCards.length} animal cards`
+                      : `${partner?.name} gets all ${gameState.selectedAnimalCards.length} animal cards`
+                    }
+                  </p>
+                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
+                    Money cards will be exchanged between players
+                  </p>
+                </>
+              )}
             </div>
           )}
         </div>
@@ -478,37 +811,175 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     );
   };
 
-  const renderTradeComplete = () => (
-    <div style={{
-      padding: '20px',
-      backgroundColor: '#e8f5e8',
-      borderRadius: '8px',
-      border: '2px solid #4CAF50',
-      textAlign: 'center'
-    }}>
-      <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
-        ✅ Trade Complete
-      </h3>
-      <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-        The trade has been executed successfully.
-      </p>
-      <button
-        onClick={onExecuteTrade}
-        style={{
-          padding: '12px 24px',
-          backgroundColor: '#4CAF50',
-          color: 'white',
-          border: 'none',
-          borderRadius: '6px',
-          cursor: 'pointer',
-          fontSize: '16px',
-          fontWeight: 'bold'
-        }}
-      >
-        Continue
-      </button>
-    </div>
-  );
+  const renderTradeComplete = () => {
+    const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    const challenged = gameState.players.find(p => p.id === gameState.tradePartner);
+    const challengerOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradeInitiator);
+    const challengedOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradePartner);
+    const isParticipant = isChallenger || isChallenged;
+
+    if (!challengerOffer || !challengedOffer) {
+      return (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#e8f5e8',
+          borderRadius: '8px',
+          border: '2px solid #4CAF50',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
+            ✅ Trade Complete
+          </h3>
+          <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+            The trade has been executed successfully.
+          </p>
+          <button
+            onClick={onExecuteTrade}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      );
+    }
+
+    const winner = challengerOffer.totalValue > challengedOffer.totalValue ? challenger : challenged;
+    const loser = winner?.id === challenger?.id ? challenged : challenger;
+    const winnerOffer = winner?.id === challenger?.id ? challengerOffer : challengedOffer;
+    const loserOffer = winner?.id === challenger?.id ? challengedOffer : challengerOffer;
+
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#e8f5e8',
+        borderRadius: '8px',
+        border: '2px solid #4CAF50',
+        textAlign: 'center'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
+          ✅ Trade Complete
+        </h3>
+
+        {/* Trade Summary */}
+        <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+          <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>Trade Summary:</h4>
+          
+          {isParticipant ? (
+            // Detailed view for participants
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Winner Details */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#e8f5e8',
+                borderRadius: '4px',
+                border: '1px solid #4CAF50'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>🏆 {winner?.name} (Winner):</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {winnerOffer.moneyCards.length} money cards (${winnerOffer.totalValue})
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Received: All {gameState.selectedAnimalCards.length * 2} animal cards
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Received: {loserOffer.moneyCards.length} money cards from {loser?.name}
+                </p>
+              </div>
+
+              {/* Loser Details */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#ffebee',
+                borderRadius: '4px',
+                border: '1px solid #f44336'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#d32f2f' }}>❌ {loser?.name} (Loser):</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {loserOffer.moneyCards.length} money cards (${loserOffer.totalValue})
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Lost: All {gameState.selectedAnimalCards.length * 2} animal cards
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Received: {winnerOffer.moneyCards.length} money cards from {winner?.name}
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Simplified view for spectators
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Challenger */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: winner?.id === challenger?.id ? '#e8f5e8' : '#ffebee',
+                borderRadius: '4px',
+                border: `1px solid ${winner?.id === challenger?.id ? '#4CAF50' : '#f44336'}`
+              }}>
+                <h5 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: winner?.id === challenger?.id ? '#2E7D32' : '#d32f2f'
+                }}>
+                  {winner?.id === challenger?.id ? '🏆' : '❌'} {challenger?.name}:
+                </h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengerOffer.moneyCards.length} money cards (face-down)
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  {winner?.id === challenger?.id ? `Won all ${gameState.selectedAnimalCards.length * 2} animal cards` : `Lost all ${gameState.selectedAnimalCards.length * 2} animal cards`}
+                </p>
+              </div>
+
+              {/* Challenged Player */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: winner?.id === challenged?.id ? '#e8f5e8' : '#ffebee',
+                borderRadius: '4px',
+                border: `1px solid ${winner?.id === challenged?.id ? '#4CAF50' : '#f44336'}`
+              }}>
+                <h5 style={{ 
+                  margin: '0 0 8px 0', 
+                  color: winner?.id === challenged?.id ? '#2E7D32' : '#d32f2f'
+                }}>
+                  {winner?.id === challenged?.id ? '🏆' : '❌'} {challenged?.name}:
+                </h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengedOffer.moneyCards.length} money cards (face-down)
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  {winner?.id === challenged?.id ? `Won all ${gameState.selectedAnimalCards.length * 2} animal cards` : `Lost all ${gameState.selectedAnimalCards.length * 2} animal cards`}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={onExecuteTrade}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#4CAF50',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}
+        >
+          Continue
+        </button>
+      </div>
+    );
+  };
 
   // Main render logic
   if (!currentPlayer) {
@@ -554,11 +1025,23 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         </div>
       );
     
-    case 'making_offers':
-      return renderMakingOffers();
+    case 'challenger_bidding':
+      if (isChallenger) {
+        return renderChallengerBidding();
+      } else {
+        return renderSpectatorView();
+      }
+    
+    case 'challenged_bidding':
+      if (isChallenged) {
+        return renderChallengedBidding();
+      } else {
+        return renderSpectatorView();
+      }
     
     case 'confirming_trade':
-      return renderConfirmingTrade();
+      // This state should no longer be reached since trades execute immediately
+      return renderTradeComplete();
     
     case 'trade_complete':
       return renderTradeComplete();
