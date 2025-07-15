@@ -85,8 +85,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_1_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_1_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_1_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_1_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_1', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_1_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -100,8 +99,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_2_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_2_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_2_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_2_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_2', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_2_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -115,8 +113,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_3_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_3_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_3_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_3_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_3', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_3_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -130,8 +127,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_4_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_4_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_4_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_4_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_4', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_4_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -145,8 +141,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_5_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_5_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_5_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_5_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_5', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_5_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -160,8 +155,7 @@ export const testPlayers: Player[] = [
       { id: 'money10_6_4', type: 'money', value: 10, name: '10' },
       { id: 'money0_6_1', type: 'money', value: 0, name: '0' },
       { id: 'money0_6_2', type: 'money', value: 0, name: '0' },
-      { id: 'money50_6_1', type: 'money', value: 50, name: '50' },
-      { id: 'chicken_6', type: 'animal', value: 10, name: 'Chicken' }
+      { id: 'money50_6_1', type: 'money', value: 50, name: '50' }
     ],
     money: 90,
   },
@@ -170,22 +164,9 @@ export const testPlayers: Player[] = [
 // Test game state
 export const testGameState: GameState = {
   players: testPlayers,
-  // Remove the animal cards given to players from the deck
+  // All animal cards are in the deck since players start with no animal cards
   deck: [
-    ...animalCards.filter(card => !([
-      // Alice's cards
-      'chicken_1',
-      // Bob's cards  
-      'chicken_2',
-      // Charlie's cards
-      'chicken_3',
-      // Darla's cards
-      'chicken_4',
-      // Eve's cards
-      'chicken_5',
-      // Frank's cards
-      'chicken_6'
-    ].includes(card.id))),
+    ...animalCards,
     ...moneyCards
   ], // Full deck for reference
   currentTurn: 'player1',
