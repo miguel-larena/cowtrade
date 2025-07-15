@@ -727,18 +727,19 @@ export const useGameState = () => {
         }
 
         // Execute the trade according to the new rules:
-        // 1. Winner gets all animal cards
+        // 1. Winner keeps their wagered animal cards AND gets loser's animal cards
         // 2. Players exchange money cards (Alice gets Bob's money, Bob gets Alice's money)
         const updatedPlayers = prev.players.map(player => {
           if (player.id === winner.id) {
-            // Winner: lose their money cards, get all animal cards, get loser's money cards
+            // Winner: lose their money cards, keep their wagered animal cards, get loser's animal cards, get loser's money cards
             const newHand = player.hand.filter(card => 
               !winningOffer.moneyCards.includes(card.id)
+              // Note: NOT removing wagered animal cards - winner keeps them!
             );
             
-            // Add all animal cards from both players
-            const allAnimalCardObjects = prev.players.flatMap(p => 
-              p.hand.filter(card => allAnimalCards.includes(card.id))
+            // Add loser's animal cards (same types as wagered)
+            const loserAnimalCardObjects = loser.hand.filter(card => 
+              allAnimalCards.includes(card.id)
             );
             
             // Add loser's money cards
@@ -748,7 +749,7 @@ export const useGameState = () => {
             
             return {
               ...player,
-              hand: [...newHand, ...allAnimalCardObjects, ...loserMoneyCardObjects]
+              hand: [...newHand, ...loserAnimalCardObjects, ...loserMoneyCardObjects]
             };
           }
           
