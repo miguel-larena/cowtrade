@@ -3,6 +3,7 @@ import PlayerHand from '../components/PlayerHand';
 import AuctionPanel from '../components/AuctionPanel';
 import TradingPanel from '../components/TradingPanel';
 import GameControls from '../components/GameControls';
+import Scoreboard from '../components/Scoreboard';
 import type { GameState, GamePhase } from '../types';
 
 interface GameBoardProps {
@@ -98,17 +99,21 @@ const GameBoard: React.FC<GameBoardProps> = ({
       
       case 'end':
         return (
-          <div style={{
-            textAlign: 'center',
-            padding: '40px',
-            color: '#F44336',
-            fontSize: '20px',
-            fontWeight: 'bold',
-            backgroundColor: '#ffebee',
-            borderRadius: '8px',
-            border: '2px solid #F44336'
-          }}>
-            Game Over! Check the final scores below.
+          <div>
+            <div style={{
+              textAlign: 'center',
+              padding: '20px',
+              color: '#2E7D32',
+              fontSize: '24px',
+              fontWeight: 'bold',
+              backgroundColor: '#e8f5e8',
+              borderRadius: '8px',
+              border: '2px solid #4CAF50',
+              marginBottom: '24px'
+            }}>
+              🎉 Game Over! All animal quartets have been decided.
+            </div>
+            <Scoreboard players={gameState.players} />
           </div>
         );
       

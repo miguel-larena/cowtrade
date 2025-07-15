@@ -199,7 +199,29 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
 
   const renderChallengerSelectingCards = () => {
     const partner = gameState.players.find(p => p.id === gameState.tradePartner);
-    const myAnimalCards = currentPlayer?.hand.filter(card => card.type === 'animal') || [];
+    
+    // Get animal types that both players have
+    const myAnimalTypes = new Set(
+      currentPlayer?.hand
+        .filter(card => card.type === 'animal')
+        .map(card => card.name) || []
+    );
+    
+    const partnerAnimalTypes = new Set(
+      partner?.hand
+        .filter(card => card.type === 'animal')
+        .map(card => card.name) || []
+    );
+    
+    // Find overlapping animal types
+    const sharedAnimalTypes = new Set(
+      [...myAnimalTypes].filter(type => partnerAnimalTypes.has(type))
+    );
+    
+    // Filter animal cards to only show types that partner also has
+    const myAnimalCards = currentPlayer?.hand.filter(card => 
+      card.type === 'animal' && sharedAnimalTypes.has(card.name)
+    ) || [];
 
     return (
       <div style={{
@@ -213,7 +235,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         </h3>
         <p style={{ margin: '0 0 16px 0', color: '#666' }}>
           Choose which animal cards to trade with {partner?.name}. 
-          {partner?.name} must offer the same animal types.
+          Only animal types that {partner?.name} also has are available.
         </p>
 
         {/* Animal Cards Selection */}
@@ -229,7 +251,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
               textAlign: 'center'
             }}>
               <p style={{ margin: '0', fontSize: '14px' }}>
-                No animal cards available
+                No shared animal types with {partner?.name}
               </p>
             </div>
           ) : (

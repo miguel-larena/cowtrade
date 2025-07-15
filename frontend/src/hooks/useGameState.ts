@@ -817,16 +817,56 @@ export const useGameState = () => {
       }
 
       // Clear the trade state and move to next turn
-      return {
+      const updatedState: GameState = {
         ...prev,
-        tradeState: 'none',
+        tradeState: 'none' as const,
         tradeInitiator: null,
         tradePartner: null,
         tradeOffers: [],
         tradeConfirmed: false,
         selectedAnimalCards: []
       };
+
+      // Check end game conditions after trade
+      const shouldEndGame = checkEndGameConditions(updatedState);
+      if (shouldEndGame) {
+        return {
+          ...updatedState,
+          currentPhase: 'end'
+        };
+      }
+
+      return updatedState;
     });
+  }, []);
+
+  // Helper function to check end game conditions
+  const checkEndGameConditions = useCallback((state: GameState) => {
+    // Condition 1: All animal cards have been auctioned off (deck has no animal cards)
+    const animalCardsInDeck = state.deck.filter(card => card.type === 'animal');
+    if (animalCardsInDeck.length > 0) {
+      return false;
+    }
+
+    // Condition 2: All animal quartets have been decided (no player has 1, 2, or 3 of a kind)
+    for (const player of state.players) {
+      const animalCards = player.hand.filter(card => card.type === 'animal');
+      const animalCounts = new Map<string, number>();
+      
+      for (const card of animalCards) {
+        animalCounts.set(card.name, (animalCounts.get(card.name) || 0) + 1);
+      }
+      
+      // Check if any player has incomplete quartets (1, 2, or 3 of a kind)
+      for (const [animalType, count] of animalCounts) {
+        if (count > 0 && count < 4) {
+          return false; // Game should continue - incomplete quartet found
+        }
+      }
+    }
+
+    // All conditions met - game should end
+    return true;
   }, []);
 
   const cancelTrade = useCallback(() => {
