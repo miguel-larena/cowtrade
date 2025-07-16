@@ -2,65 +2,65 @@ import type { Player, Card, GameState } from './types';
 
 // Test animal cards (4 of each type = 40 total)
 export const animalCards: Card[] = [
-  // Chickens (4)
-  { id: 'chicken_1', type: 'animal', value: 10, name: 'Chicken' },
-  { id: 'chicken_2', type: 'animal', value: 10, name: 'Chicken' },
-  { id: 'chicken_3', type: 'animal', value: 10, name: 'Chicken' },
-  { id: 'chicken_4', type: 'animal', value: 10, name: 'Chicken' },
+  // Shrimp (4) - lowest value
+  { id: 'shrimp_1', type: 'animal', value: 10, name: 'Shrimp' },
+  { id: 'shrimp_2', type: 'animal', value: 10, name: 'Shrimp' },
+  { id: 'shrimp_3', type: 'animal', value: 10, name: 'Shrimp' },
+  { id: 'shrimp_4', type: 'animal', value: 10, name: 'Shrimp' },
+
+  // Clam (4) - second lowest value
+  { id: 'clam_1', type: 'animal', value: 40, name: 'Clam' },
+  { id: 'clam_2', type: 'animal', value: 40, name: 'Clam' },
+  { id: 'clam_3', type: 'animal', value: 40, name: 'Clam' },
+  { id: 'clam_4', type: 'animal', value: 40, name: 'Clam' }, 
+
+  // Lobster (4) - third lowest value
+  { id: 'lobster_1', type: 'animal', value: 90, name: 'Lobster' },
+  { id: 'lobster_2', type: 'animal', value: 90, name: 'Lobster' },
+  { id: 'lobster_3', type: 'animal', value: 90, name: 'Lobster' },
+  { id: 'lobster_4', type: 'animal', value: 90, name: 'Lobster' },
   
-  // Geese (4)
-  { id: 'goose_1', type: 'animal', value: 40, name: 'Goose' },
-  { id: 'goose_2', type: 'animal', value: 40, name: 'Goose' },
-  { id: 'goose_3', type: 'animal', value: 40, name: 'Goose' },
-  { id: 'goose_4', type: 'animal', value: 40, name: 'Goose' },
+  // Puffer Fish (4) - fourth lowest value
+  { id: 'puffer_fish_1', type: 'animal', value: 160, name: 'Puffer Fish' },
+  { id: 'puffer_fish_2', type: 'animal', value: 160, name: 'Puffer Fish' },
+  { id: 'puffer_fish_3', type: 'animal', value: 160, name: 'Puffer Fish' },
+  { id: 'puffer_fish_4', type: 'animal', value: 160, name: 'Puffer Fish' },
   
-  // Cats (4)
-  { id: 'cat_1', type: 'animal', value: 90, name: 'Cat' },
-  { id: 'cat_2', type: 'animal', value: 90, name: 'Cat' },
-  { id: 'cat_3', type: 'animal', value: 90, name: 'Cat' },
-  { id: 'cat_4', type: 'animal', value: 90, name: 'Cat' },
+  // Turtle (4) - fifth lowest value
+  { id: 'turtle_1', type: 'animal', value: 250, name: 'Turtle' },
+  { id: 'turtle_2', type: 'animal', value: 250, name: 'Turtle' },
+  { id: 'turtle_3', type: 'animal', value: 250, name: 'Turtle' },
+  { id: 'turtle_4', type: 'animal', value: 250, name: 'Turtle' },
   
-  // Dogs (4)
-  { id: 'dog_1', type: 'animal', value: 160, name: 'Dog' },
-  { id: 'dog_2', type: 'animal', value: 160, name: 'Dog' },
-  { id: 'dog_3', type: 'animal', value: 160, name: 'Dog' },
-  { id: 'dog_4', type: 'animal', value: 160, name: 'Dog' },
+  // Octopus (4) - sixth lowest value
+  { id: 'octopus_1', type: 'animal', value: 350, name: 'Octopus' },
+  { id: 'octopus_2', type: 'animal', value: 350, name: 'Octopus' },
+  { id: 'octopus_3', type: 'animal', value: 350, name: 'Octopus' },
+  { id: 'octopus_4', type: 'animal', value: 350, name: 'Octopus' },
   
-  // Sheep (4)
-  { id: 'sheep_1', type: 'animal', value: 250, name: 'Sheep' },
-  { id: 'sheep_2', type: 'animal', value: 250, name: 'Sheep' },
-  { id: 'sheep_3', type: 'animal', value: 250, name: 'Sheep' },
-  { id: 'sheep_4', type: 'animal', value: 250, name: 'Sheep' },
+  // Tuna (4) - seventh lowest value
+  { id: 'tuna_1', type: 'animal', value: 500, name: 'Tuna' },
+  { id: 'tuna_2', type: 'animal', value: 500, name: 'Tuna' },
+  { id: 'tuna_3', type: 'animal', value: 500, name: 'Tuna' },
+  { id: 'tuna_4', type: 'animal', value: 500, name: 'Tuna' },
   
-  // Goats (4)
-  { id: 'goat_1', type: 'animal', value: 350, name: 'Goat' },
-  { id: 'goat_2', type: 'animal', value: 350, name: 'Goat' },
-  { id: 'goat_3', type: 'animal', value: 350, name: 'Goat' },
-  { id: 'goat_4', type: 'animal', value: 350, name: 'Goat' },
+  // Dolphin (4) - eighth lowest value
+  { id: 'dolphin_1', type: 'animal', value: 650, name: 'Dolphin' },
+  { id: 'dolphin_2', type: 'animal', value: 650, name: 'Dolphin' },
+  { id: 'dolphin_3', type: 'animal', value: 650, name: 'Dolphin' },
+  { id: 'dolphin_4', type: 'animal', value: 650, name: 'Dolphin' },
   
-  // Donkeys (4)
-  { id: 'donkey_1', type: 'animal', value: 500, name: 'Donkey' },
-  { id: 'donkey_2', type: 'animal', value: 500, name: 'Donkey' },
-  { id: 'donkey_3', type: 'animal', value: 500, name: 'Donkey' },
-  { id: 'donkey_4', type: 'animal', value: 500, name: 'Donkey' },
+  // Shark (4) - ninth lowest value
+  { id: 'shark_1', type: 'animal', value: 800, name: 'Shark' },
+  { id: 'shark_2', type: 'animal', value: 800, name: 'Shark' },
+  { id: 'shark_3', type: 'animal', value: 800, name: 'Shark' },
+  { id: 'shark_4', type: 'animal', value: 800, name: 'Shark' },
   
-  // Pigs (4)
-  { id: 'pig_1', type: 'animal', value: 650, name: 'Pig' },
-  { id: 'pig_2', type: 'animal', value: 650, name: 'Pig' },
-  { id: 'pig_3', type: 'animal', value: 650, name: 'Pig' },
-  { id: 'pig_4', type: 'animal', value: 650, name: 'Pig' },
-  
-  // Bulls (4)
-  { id: 'bull_1', type: 'animal', value: 800, name: 'Bull' },
-  { id: 'bull_2', type: 'animal', value: 800, name: 'Bull' },
-  { id: 'bull_3', type: 'animal', value: 800, name: 'Bull' },
-  { id: 'bull_4', type: 'animal', value: 800, name: 'Bull' },
-  
-  // Cows (4)
-  { id: 'cow_1', type: 'animal', value: 1000, name: 'Cow' },
-  { id: 'cow_2', type: 'animal', value: 1000, name: 'Cow' },
-  { id: 'cow_3', type: 'animal', value: 1000, name: 'Cow' },
-  { id: 'cow_4', type: 'animal', value: 1000, name: 'Cow' },
+  // Whale (4) - highest value
+  { id: 'whale_1', type: 'animal', value: 1000, name: 'Whale' },
+  { id: 'whale_2', type: 'animal', value: 1000, name: 'Whale' },
+  { id: 'whale_3', type: 'animal', value: 1000, name: 'Whale' },
+  { id: 'whale_4', type: 'animal', value: 1000, name: 'Whale' },
 ];
 
 // Test money cards

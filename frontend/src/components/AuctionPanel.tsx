@@ -217,11 +217,92 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             </div>
           )}
           
+          {/* Disqualified Players Display */}
+          {gameState.disqualifiedPlayers.length > 0 && (
+            <div style={{ 
+              marginTop: '8px',
+              padding: '12px',
+              backgroundColor: '#ffebee',
+              border: '1px solid #f44336',
+              borderRadius: '4px'
+            }}>
+              <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '8px' }}>
+                🚫 Disqualified Players (Bluffers):
+              </div>
+              {gameState.disqualifiedPlayers.map(playerId => {
+                const player = gameState.players.find(p => p.id === playerId);
+                if (!player) return null;
+                
+                const moneyCards = player.hand.filter(card => card.type === 'money');
+                const totalMoney = moneyCards.reduce((sum, card) => sum + card.value, 0);
+                
+                return (
+                  <div key={playerId} style={{
+                    marginBottom: '12px',
+                    padding: '8px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #f44336',
+                    borderRadius: '4px'
+                  }}>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      fontWeight: 'bold', 
+                      color: '#d32f2f',
+                      marginBottom: '6px'
+                    }}>
+                      {player.name} - Total Money: ${totalMoney}
+                    </div>
+                    <div style={{ 
+                      fontSize: '10px', 
+                      color: '#666',
+                      marginBottom: '6px'
+                    }}>
+                      Money Cards:
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '4px', 
+                      flexWrap: 'wrap',
+                      maxWidth: '100%'
+                    }}>
+                      {moneyCards.map(card => (
+                        <div key={card.id} style={{
+                          transform: 'scale(0.7)',
+                          transformOrigin: 'left center'
+                        }}>
+                          <CardComponent card={card} />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           {!isAuctioneer && currentPlayer && (
             <div style={{ marginTop: '16px' }}>
-              <div style={{ fontSize: '14px', marginBottom: '8px' }}>
-                Your Money: ${currentPlayer.money}
-              </div>
+              {/* Check if current player is disqualified */}
+              {gameState.disqualifiedPlayers.includes(currentPlayerId) ? (
+                <div style={{
+                  padding: '12px',
+                  backgroundColor: '#ffebee',
+                  border: '2px solid #f44336',
+                  borderRadius: '4px',
+                  textAlign: 'center'
+                }}>
+                  <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '4px' }}>
+                    🚫 You are disqualified from this auction
+                  </div>
+                  <div style={{ fontSize: '12px', color: '#d32f2f' }}>
+                    You cannot place bids until this auction ends
+                  </div>
+                </div>
+              ) : (
+                <>
+                  <div style={{ fontSize: '14px', marginBottom: '8px' }}>
+                    Your Money: ${currentPlayer.money}
+                  </div>
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <input
                   type="number"
@@ -266,6 +347,8 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                 <div style={{ fontSize: '12px', color: '#FF5722', marginTop: '4px', fontWeight: 'bold' }}>
                   Bluffing! You only have ${currentPlayer?.money}
                 </div>
+              )}
+                </>
               )}
             </div>
           )}

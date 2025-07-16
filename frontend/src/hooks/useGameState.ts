@@ -17,7 +17,7 @@ export const useGameState = () => {
         currentBid: 0,
         currentBidder: null,
         auctionCard: undefined, // No auction card when switching phases
-        disqualifiedPlayers: newPhase === 'auction' ? [] : prev.disqualifiedPlayers, // Reset disqualified players when entering auction phase
+        disqualifiedPlayers: [], // Reset disqualified players when changing phases
         // Reset trading state when changing phases
         tradeState: 'none',
         tradeInitiator: null,
@@ -76,6 +76,10 @@ export const useGameState = () => {
       // Set auction end time (1 minute from now)
       const endTime = Date.now() + 60000; // 60 seconds (1 minute)
 
+      // Only reset disqualified players if this is a completely new auction
+      // (different auctioneer or no previous auctioneer)
+      const shouldResetDisqualified = prev.auctioneer !== auctioneerId || !prev.auctioneer;
+
       return {
         ...prev,
         auctionState: 'in_progress',
@@ -84,7 +88,7 @@ export const useGameState = () => {
         auctionEndTime: endTime,
         currentBid: 0,
         currentBidder: null,
-        disqualifiedPlayers: [] // Reset disqualified players for new auction
+        disqualifiedPlayers: shouldResetDisqualified ? [] : prev.disqualifiedPlayers // Only reset for new auctions
       };
     });
   }, []);
@@ -96,7 +100,8 @@ export const useGameState = () => {
         amount,
         currentBid: prev.currentBid,
         auctionState: prev.auctionState,
-        auctioneer: prev.auctioneer
+        auctioneer: prev.auctioneer,
+        disqualifiedPlayers: prev.disqualifiedPlayers
       });
       
       // Check if auction is in progress
@@ -109,6 +114,12 @@ export const useGameState = () => {
       if (bidderId === prev.auctioneer) {
         console.log('Bidder is auctioneer');
         return prev; // Auctioneer cannot bid
+      }
+
+      // Check if bidder is disqualified
+      if (prev.disqualifiedPlayers.includes(bidderId)) {
+        console.log('Bidder is disqualified:', { bidderId, disqualifiedPlayers: prev.disqualifiedPlayers });
+        return prev; // Disqualified players cannot bid
       }
 
       // Check if bid is valid (multiple of 10 and higher than current bid)
@@ -220,6 +231,7 @@ export const useGameState = () => {
         auctionCard: undefined,
         auctioneer: null,
         auctionEndTime: undefined,
+        disqualifiedPlayers: [], // Reset disqualified players when auction completes successfully
         currentTurn: prev.players[nextIndex].id,
         deck: updatedDeck
       };
@@ -376,6 +388,7 @@ export const useGameState = () => {
           auctionCard: undefined,
           auctioneer: null,
           auctionEndTime: undefined,
+          disqualifiedPlayers: [], // Reset disqualified players when auction completes successfully
           currentTurn: prev.players[nextIndex].id,
           deck: updatedDeck
         };
@@ -421,6 +434,7 @@ export const useGameState = () => {
             auctionCard: undefined,
             auctioneer: null,
             auctionEndTime: undefined,
+            disqualifiedPlayers: [], // Reset disqualified players when auction completes successfully
             currentTurn: prev.players[nextIndex].id,
             deck: updatedDeck
           };
@@ -436,6 +450,7 @@ export const useGameState = () => {
           auctionCard: undefined,
           auctioneer: null,
           auctionEndTime: undefined,
+          disqualifiedPlayers: [], // Reset disqualified players when auction completes successfully
           deck: updatedDeck
         };
       }
@@ -690,13 +705,13 @@ export const useGameState = () => {
           };
         }
 
-        // Check for tie - if both offers are the same value, restart the bidding
+        // Check for tie - if both offers are the same value, show tie summary
         if (offer1.totalValue === offer2.totalValue) {
-          console.log('Trade tie detected - restarting bidding');
+          console.log('Trade tie detected - showing tie summary');
           return {
             ...prev,
-            tradeState: 'challenger_bidding',
-            tradeOffers: [],
+            tradeState: 'trade_tie_summary',
+            tradeOffers: updatedOffers, // Keep the offers for the summary
             tradeConfirmed: false
           };
         }
@@ -840,6 +855,22 @@ export const useGameState = () => {
     });
   }, []);
 
+  const restartTradeAfterTie = useCallback(() => {
+    setGameState(prev => {
+      if (prev.tradeState !== 'trade_tie_summary') {
+        return prev;
+      }
+
+      console.log('Restarting trade after tie summary');
+      return {
+        ...prev,
+        tradeState: 'challenger_bidding',
+        tradeOffers: [],
+        tradeConfirmed: false
+      };
+    });
+  }, []);
+
   // Helper function to check end game conditions
   const checkEndGameConditions = useCallback((state: GameState) => {
     // Condition 1: All animal cards have been auctioned off (deck has no animal cards)
@@ -943,6 +974,7 @@ export const useGameState = () => {
     confirmTrade,
     executeTrade,
     cancelTrade,
+    restartTradeAfterTie,
     
     // Utilities
     getCurrentPlayer,

@@ -4,6 +4,7 @@ import CardComponent from './Card';
 
 interface PlayerHandProps {
   player: Player;
+  currentPlayerId?: string; // ID of the current player viewing the hand
   onCardClick?: (card: Card) => void;
   selectable?: boolean;
   selectedCards?: Card[];
@@ -11,6 +12,7 @@ interface PlayerHandProps {
 
 const PlayerHand: React.FC<PlayerHandProps> = ({ 
   player, 
+  currentPlayerId,
   onCardClick, 
   selectable = false,
   selectedCards = []
@@ -43,18 +45,22 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     <div style={{ 
       border: '2px solid #ddd', 
       borderRadius: '8px', 
-      padding: '16px',
-      margin: '8px',
+      padding: '12px',
+      margin: '4px',
       backgroundColor: '#f9f9f9'
     }}>
-      <h3 style={{ margin: '0 0 12px 0', color: '#333' }}>
+      <h3 style={{ 
+        margin: '0 0 8px 0', 
+        color: '#333',
+        fontSize: 'clamp(14px, 3vw, 18px)'
+      }}>
         {player.name}'s Hand
       </h3>
       <div style={{ 
         display: 'flex', 
         flexWrap: 'wrap', 
-        gap: '8px',
-        minHeight: '120px'
+        gap: '6px',
+        minHeight: '100px'
       }}>
         {player.hand.length === 0 ? (
           <div style={{ 
@@ -67,24 +73,33 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             No cards in hand
           </div>
         ) : (
-          player.hand.map(card => (
-            <CardComponent
-              key={card.id}
-              card={card}
-              onClick={() => handleCardClick(card)}
-              selected={isCardSelected(card)}
-            />
-          ))
+          player.hand.map(card => {
+            const isOwnCard = currentPlayerId === player.id;
+            const showValue = isOwnCard || card.type === 'animal'; // Show value for own cards or animal cards
+            
+            return (
+              <CardComponent
+                key={card.id}
+                card={card}
+                onClick={() => handleCardClick(card)}
+                selected={isCardSelected(card)}
+                isOwnCard={isOwnCard}
+                showValue={showValue}
+              />
+            );
+          })
         )}
       </div>
-      <div style={{ 
-        marginTop: '8px', 
-        fontSize: '14px', 
-        color: '#666',
-        fontWeight: 'bold'
-      }}>
-        Money: ${player.money}
-      </div>
+      {currentPlayerId === player.id && (
+        <div style={{ 
+          marginTop: '6px', 
+          fontSize: 'clamp(12px, 2.5vw, 14px)', 
+          color: '#666',
+          fontWeight: 'bold'
+        }}>
+          Money: ${player.money}
+        </div>
+      )}
     </div>
   );
 };

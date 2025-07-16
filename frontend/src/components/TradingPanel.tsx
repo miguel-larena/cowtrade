@@ -12,6 +12,7 @@ interface TradingPanelProps {
   onExecuteTrade: () => void;
   onCancelTrade: () => void;
   onInitiateTrade: (playerId: string, partnerId?: string) => void;
+  onRestartTradeAfterTie: () => void;
 }
 
 const TradingPanel: React.FC<TradingPanelProps> = ({
@@ -23,7 +24,8 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   onConfirmTrade,
   onExecuteTrade,
   onCancelTrade,
-  onInitiateTrade
+  onInitiateTrade,
+  onRestartTradeAfterTie
 }) => {
   const [selectedAnimalCards, setSelectedAnimalCards] = useState<string[]>([]);
   const [selectedMoneyCards, setSelectedMoneyCards] = useState<string[]>([]);
@@ -36,6 +38,30 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
 
   const currentOffer = gameState.tradeOffers.find(offer => offer.playerId === currentPlayerId);
   const otherOffer = gameState.tradeOffers.find(offer => offer.playerId !== currentPlayerId);
+
+  // Helper function to get animal card names from selected animal card IDs
+  const getAnimalCardNames = () => {
+    if (!gameState.selectedAnimalCards.length) return [];
+    
+    // Get the challenger (initiator) to find the animal cards
+    const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    if (!challenger) return [];
+    
+    const animalNames = gameState.selectedAnimalCards.map(cardId => {
+      const card = challenger.hand.find(card => card.id === cardId);
+      return card?.name;
+    }).filter(Boolean);
+    
+    // Count occurrences of each animal type
+    const animalCounts = new Map<string, number>();
+    animalNames.forEach(name => {
+      if (name) {
+        animalCounts.set(name, (animalCounts.get(name) || 0) + 1);
+      }
+    });
+    
+    return Array.from(animalCounts.entries()).map(([name, count]) => `${count} ${name}`);
+  };
 
   // Helper function to check if a player has the same animal types as current player
   const hasSameAnimalTypes = (player: Player) => {
@@ -910,7 +936,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   Bid: {winnerOffer.moneyCards.length} money cards (${winnerOffer.totalValue})
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  Received: All {gameState.selectedAnimalCards.length * 2} animal cards
+                  Received: {getAnimalCardNames().join(', ')}
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
                   Received: {loserOffer.moneyCards.length} money cards from {loser?.name}
@@ -929,7 +955,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   Bid: {loserOffer.moneyCards.length} money cards (${loserOffer.totalValue})
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  Lost: All {gameState.selectedAnimalCards.length * 2} animal cards
+                  Lost: {getAnimalCardNames().join(', ')}
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
                   Received: {winnerOffer.moneyCards.length} money cards from {winner?.name}
@@ -953,10 +979,10 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   {winner?.id === challenger?.id ? '🏆' : '❌'} {challenger?.name}:
                 </h5>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  Bid: {challengerOffer.moneyCards.length} money cards (face-down)
+                  Bid: {challengerOffer.moneyCards.length} money cards
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  {winner?.id === challenger?.id ? `Won all ${gameState.selectedAnimalCards.length * 2} animal cards` : `Lost all ${gameState.selectedAnimalCards.length * 2} animal cards`}
+                  {winner?.id === challenger?.id ? `Won ${getAnimalCardNames().join(', ')}` : `Lost ${getAnimalCardNames().join(', ')}`}
                 </p>
               </div>
 
@@ -974,10 +1000,10 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   {winner?.id === challenged?.id ? '🏆' : '❌'} {challenged?.name}:
                 </h5>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  Bid: {challengedOffer.moneyCards.length} money cards (face-down)
+                  Bid: {challengedOffer.moneyCards.length} money cards
                 </p>
                 <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                  {winner?.id === challenged?.id ? `Won all ${gameState.selectedAnimalCards.length * 2} animal cards` : `Lost all ${gameState.selectedAnimalCards.length * 2} animal cards`}
+                  {winner?.id === challenged?.id ? `Won ${getAnimalCardNames().join(', ')}` : `Lost ${getAnimalCardNames().join(', ')}`}
                 </p>
               </div>
             </div>
@@ -998,6 +1024,158 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           }}
         >
           Continue
+        </button>
+      </div>
+    );
+  };
+
+  const renderTradeTieSummary = () => {
+    const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
+    const challenged = gameState.players.find(p => p.id === gameState.tradePartner);
+    const challengerOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradeInitiator);
+    const challengedOffer = gameState.tradeOffers.find(offer => offer.playerId === gameState.tradePartner);
+    const isParticipant = isChallenger || isChallenged;
+
+    if (!challengerOffer || !challengedOffer) {
+      return (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#fff3e0',
+          borderRadius: '8px',
+          border: '2px solid #ff9800',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', color: '#e65100' }}>
+            🤝 Trade Tie
+          </h3>
+          <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+            Both players bid the same amount - trade will restart.
+          </p>
+          <button
+            onClick={onRestartTradeAfterTie}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#ff9800',
+              color: 'white',
+              border: 'none',
+              borderRadius: '6px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Restart Trade
+          </button>
+        </div>
+      );
+    }
+
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#fff3e0',
+        borderRadius: '8px',
+        border: '2px solid #ff9800',
+        textAlign: 'center'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#e65100' }}>
+          🤝 Trade Tie
+        </h3>
+        <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+          Both players bid the same amount - trade will restart.
+        </p>
+
+        {/* Tie Summary */}
+        <div style={{ marginBottom: '20px', textAlign: 'left' }}>
+          <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>Tie Summary:</h4>
+          
+          {isParticipant ? (
+            // Detailed view for participants
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Challenger */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '4px',
+                border: '1px solid #ff9800'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#e65100' }}>🤝 {challenger?.name}:</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengerOffer.moneyCards.length} money cards (${challengerOffer.totalValue})
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Animal cards: {getAnimalCardNames().join(', ')}
+                </p>
+              </div>
+
+              {/* Challenged Player */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '4px',
+                border: '1px solid #ff9800'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#e65100' }}>🤝 {challenged?.name}:</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengedOffer.moneyCards.length} money cards (${challengedOffer.totalValue})
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Animal cards: {getAnimalCardNames().join(', ')}
+                </p>
+              </div>
+            </div>
+          ) : (
+            // Simplified view for spectators
+            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
+              {/* Challenger */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '4px',
+                border: '1px solid #ff9800'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#e65100' }}>🤝 {challenger?.name}:</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengerOffer.moneyCards.length} money cards (face-down)
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Animal cards: {getAnimalCardNames().join(', ')}
+                </p>
+              </div>
+
+              {/* Challenged Player */}
+              <div style={{
+                padding: '12px',
+                backgroundColor: '#fff3e0',
+                borderRadius: '4px',
+                border: '1px solid #ff9800'
+              }}>
+                <h5 style={{ margin: '0 0 8px 0', color: '#e65100' }}>🤝 {challenged?.name}:</h5>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Bid: {challengedOffer.moneyCards.length} money cards (face-down)
+                </p>
+                <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                  Animal cards: {getAnimalCardNames().join(', ')}
+                </p>
+              </div>
+            </div>
+          )}
+        </div>
+
+        <button
+          onClick={onRestartTradeAfterTie}
+          style={{
+            padding: '12px 24px',
+            backgroundColor: '#ff9800',
+            color: 'white',
+            border: 'none',
+            borderRadius: '6px',
+            cursor: 'pointer',
+            fontSize: '16px',
+            fontWeight: 'bold'
+          }}
+        >
+          Restart Trade
         </button>
       </div>
     );
@@ -1067,6 +1245,9 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     
     case 'trade_complete':
       return renderTradeComplete();
+    
+    case 'trade_tie_summary':
+      return renderTradeTieSummary();
     
     default:
       return null;

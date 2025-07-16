@@ -29,6 +29,7 @@ interface GameBoardProps {
   onConfirmTrade: (playerId: string) => void;
   onExecuteTrade: () => void;
   onCancelTrade: () => void;
+  onRestartTradeAfterTie: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -46,7 +47,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onMakeTradeOffer,
   onConfirmTrade,
   onExecuteTrade,
-  onCancelTrade
+  onCancelTrade,
+  onRestartTradeAfterTie
 }) => {
   const [testPlayerId, setTestPlayerId] = useState(currentPlayerId);
 
@@ -56,14 +58,16 @@ const GameBoard: React.FC<GameBoardProps> = ({
         return (
           <div style={{
             textAlign: 'center',
-            padding: '40px',
-            color: '#555',
+            padding: '60px 40px',
+            color: '#6c757d',
             fontStyle: 'italic',
             fontSize: '18px',
-            backgroundColor: '#f9f9f9',
-            borderRadius: '8px',
-            border: '1px solid #ddd'
+            backgroundColor: '#f8f9fa',
+            borderRadius: '12px',
+            border: '2px solid #e9ecef',
+            boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
+            <div style={{ fontSize: '24px', marginBottom: '16px' }}>🎮</div>
             Use the Game Controls to start the game
           </div>
         );
@@ -94,6 +98,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
             onConfirmTrade={onConfirmTrade}
             onExecuteTrade={onExecuteTrade}
             onCancelTrade={onCancelTrade}
+            onRestartTradeAfterTie={onRestartTradeAfterTie}
           />
         );
       
@@ -102,14 +107,15 @@ const GameBoard: React.FC<GameBoardProps> = ({
           <div>
             <div style={{
               textAlign: 'center',
-              padding: '20px',
-              color: '#2E7D32',
+              padding: '24px',
+              color: '#155724',
               fontSize: '24px',
               fontWeight: 'bold',
-              backgroundColor: '#e8f5e8',
-              borderRadius: '8px',
-              border: '2px solid #4CAF50',
-              marginBottom: '24px'
+              backgroundColor: '#d4edda',
+              borderRadius: '12px',
+              border: '2px solid #c3e6cb',
+              marginBottom: '24px',
+              boxShadow: '0 4px 12px rgba(40,167,69,0.2)'
             }}>
               🎉 Game Over! All animal quartets have been decided.
             </div>
@@ -123,71 +129,116 @@ const GameBoard: React.FC<GameBoardProps> = ({
   };
 
   return (
-    <div style={{
+    <div className="game-board" style={{
       maxWidth: '1400px',
       margin: '0 auto',
-      padding: '24px',
+      padding: '16px',
       fontFamily: 'Arial, sans-serif',
-      color: '#333'
+      color: '#2c3e50',
+      backgroundColor: '#f8f9fa',
+      minHeight: '100vh'
     }}>
-      <h1 style={{ 
+      <h1 className="game-title" style={{ 
         textAlign: 'center', 
-        color: '#2E7D32', 
-        marginBottom: '32px',
-        fontSize: '32px',
-        fontWeight: 'bold'
+        color: '#2c3e50', 
+        marginBottom: '24px',
+        fontSize: 'clamp(24px, 5vw, 36px)',
+        fontWeight: 'bold',
+        textShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
-        Kuhhandel - Game Board
+        🐟 Kuhhandel - Game Board
       </h1>
 
       {/* Player Switcher for Testing */}
-      <div style={{
-        backgroundColor: '#f0f8ff',
+      <div className="player-switcher" style={{
+        backgroundColor: '#e3f2fd',
         padding: '16px',
-        borderRadius: '8px',
-        marginBottom: '24px',
-        border: '2px solid #2196F3'
+        borderRadius: '12px',
+        marginBottom: '20px',
+        border: '2px solid #2196F3',
+        boxShadow: '0 4px 12px rgba(33,150,243,0.15)'
       }}>
-        <h3 style={{ margin: '0 0 12px 0', color: '#1976D2' }}>
+        <h3 style={{ 
+          margin: '0 0 12px 0', 
+          color: '#1976D2',
+          fontSize: 'clamp(14px, 3vw, 18px)',
+          fontWeight: '600'
+        }}>
           🧪 Testing Mode - Switch Player View
         </h3>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', flexWrap: 'wrap' }}>
-          <span style={{ fontWeight: 'bold', color: '#555' }}>View as:</span>
+        <div className="player-buttons" style={{ 
+          display: 'flex', 
+          gap: '8px', 
+          alignItems: 'center', 
+          flexWrap: 'wrap',
+          marginBottom: '12px'
+        }}>
+          <span style={{ 
+            fontWeight: '600', 
+            color: '#495057',
+            fontSize: 'clamp(12px, 2.5vw, 14px)'
+          }}>View as:</span>
           {gameState.players.map(player => (
             <button
               key={player.id}
+              className="player-button"
               onClick={() => setTestPlayerId(player.id)}
               style={{
-                padding: '8px 16px',
-                backgroundColor: testPlayerId === player.id ? '#2196F3' : '#e3f2fd',
+                padding: '8px 12px',
+                backgroundColor: testPlayerId === player.id ? '#2196F3' : '#ffffff',
                 color: testPlayerId === player.id ? 'white' : '#1976D2',
                 border: `2px solid ${testPlayerId === player.id ? '#1976D2' : '#2196F3'}`,
-                borderRadius: '4px',
+                borderRadius: '6px',
                 cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '14px'
+                fontWeight: '600',
+                fontSize: 'clamp(11px, 2.5vw, 14px)',
+                transition: 'all 0.2s ease',
+                boxShadow: testPlayerId === player.id ? '0 4px 8px rgba(33,150,243,0.3)' : '0 2px 4px rgba(0,0,0,0.1)'
+              }}
+              onMouseEnter={(e) => {
+                if (testPlayerId !== player.id) {
+                  e.currentTarget.style.transform = 'translateY(-1px)';
+                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(33,150,243,0.2)';
+                }
+              }}
+              onMouseLeave={(e) => {
+                if (testPlayerId !== player.id) {
+                  e.currentTarget.style.transform = 'translateY(0)';
+                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                }
               }}
             >
               {player.name}
               {isCurrentPlayerTurn(player.id) && (
-                <span style={{ marginLeft: '4px', fontSize: '12px' }}>👑</span>
+                <span style={{ 
+                  marginLeft: '4px', 
+                  fontSize: '10px',
+                  color: testPlayerId === player.id ? 'white' : '#28a745'
+                }}>👑</span>
               )}
             </button>
           ))}
         </div>
         <div style={{ 
-          marginTop: '8px', 
-          fontSize: '14px', 
-          color: '#666',
-          fontStyle: 'italic'
+          fontSize: 'clamp(11px, 2.5vw, 14px)', 
+          color: '#6c757d',
+          fontStyle: 'italic',
+          textAlign: 'center'
         }}>
-          Current turn: {gameState.players.find(p => p.id === gameState.currentTurn)?.name}
+          Current turn: <strong>{gameState.players.find(p => p.id === gameState.currentTurn)?.name}</strong>
         </div>
       </div>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '300px 1fr', gap: '24px' }}>
-        {/* Left Sidebar - Game Controls */}
-        <div style={{ order: 1 }}>
+      <div className="main-layout" style={{ 
+        display: 'grid', 
+        gridTemplateColumns: '1fr',
+        gap: '16px',
+        alignItems: 'start'
+      }}>
+        {/* Game Controls */}
+        <div className="game-controls" style={{ 
+          order: 1
+        }}>
           <GameControls
             gameState={gameState}
             currentPlayerId={testPlayerId}
@@ -196,21 +247,29 @@ const GameBoard: React.FC<GameBoardProps> = ({
         </div>
 
         {/* Main Content Area */}
-        <div style={{ order: 2 }}>
+        <div className="main-content" style={{ 
+          order: 2,
+          backgroundColor: '#ffffff',
+          borderRadius: '12px',
+          padding: '16px',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          border: '1px solid #e9ecef'
+        }}>
           {/* Phase-specific content */}
           {renderPhaseContent()}
 
           {/* Player Hands */}
-          <div style={{
+          <div className="player-hands" style={{
             display: 'grid',
-            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))',
             gap: '16px',
-            marginTop: '32px'
+            marginTop: '24px'
           }}>
             {gameState.players.map(player => (
               <PlayerHand 
                 key={player.id} 
                 player={player}
+                currentPlayerId={testPlayerId}
                 selectable={gameState.currentPhase === 'trade'}
               />
             ))}
@@ -220,20 +279,24 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
       {/* Turn Indicator */}
       {gameState.currentPhase !== 'lobby' && gameState.currentPhase !== 'end' && (
-        <div style={{
+        <div className="turn-indicator" style={{
           position: 'fixed',
-          top: '20px',
-          right: '20px',
-          padding: '12px 20px',
-          backgroundColor: isCurrentPlayerTurn(testPlayerId) ? '#4CAF50' : '#FF9800',
+          top: '10px',
+          right: '10px',
+          padding: '12px 16px',
+          backgroundColor: isCurrentPlayerTurn(testPlayerId) ? '#28a745' : '#ffc107',
           color: 'white',
           borderRadius: '8px',
           fontWeight: 'bold',
-          fontSize: '14px',
-          boxShadow: '0 2px 8px rgba(0,0,0,0.2)',
-          zIndex: 1000
+          fontSize: 'clamp(12px, 3vw, 16px)',
+          boxShadow: '0 4px 16px rgba(0,0,0,0.2)',
+          zIndex: 1000,
+          border: '2px solid rgba(255,255,255,0.2)',
+          backdropFilter: 'blur(10px)',
+          maxWidth: '200px',
+          textAlign: 'center'
         }}>
-          {isCurrentPlayerTurn(testPlayerId) ? 'Your Turn!' : `${gameState.players.find(p => p.id === gameState.currentTurn)?.name}'s Turn`}
+          {isCurrentPlayerTurn(testPlayerId) ? '🎯 Your Turn!' : `⏳ ${gameState.players.find(p => p.id === gameState.currentTurn)?.name}'s Turn`}
         </div>
       )}
     </div>

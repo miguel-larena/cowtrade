@@ -27,7 +27,8 @@ function App() {
     makeTradeOffer,
     confirmTrade,
     executeTrade,
-    cancelTrade
+    cancelTrade,
+    restartTradeAfterTie
   } = useGameState();
 
   const navigate = useNavigate();
@@ -86,6 +87,7 @@ function App() {
             onConfirmTrade={confirmTrade}
             onExecuteTrade={executeTrade}
             onCancelTrade={cancelTrade}
+            onRestartTradeAfterTie={restartTradeAfterTie}
           />
         } />
       </Routes>
