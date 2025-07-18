@@ -17,28 +17,17 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
   selectable = false,
   selectedCards = []
 }) => {
-  const [selectedCardIds, setSelectedCardIds] = useState<string[]>([]);
-
   const handleCardClick = (card: Card) => {
-    if (!selectable) {
-      onCardClick?.(card);
-      return;
-    }
-
-    setSelectedCardIds(prev => {
-      if (prev.includes(card.id)) {
-        return prev.filter(id => id !== card.id);
-      } else {
-        return [...prev, card.id];
-      }
-    });
-    
     onCardClick?.(card);
   };
 
   const isCardSelected = (card: Card) => {
-    return selectedCards.some(selectedCard => selectedCard.id === card.id) ||
-           selectedCardIds.includes(card.id);
+    // Only show selection when we have selectedCards prop (for trading context)
+    if (selectedCards.length > 0) {
+      return selectedCards.some(selectedCard => selectedCard.id === card.id);
+    }
+    // Don't show selection for general card viewing
+    return false;
   };
 
   return (

@@ -30,6 +30,8 @@ interface GameBoardProps {
   onExecuteTrade: () => void;
   onCancelTrade: () => void;
   onRestartTradeAfterTie: () => void;
+  onClearAuctionSummary: () => void;
+  onRestartAuctionAfterBluff: () => void;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -48,7 +50,9 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onConfirmTrade,
   onExecuteTrade,
   onCancelTrade,
-  onRestartTradeAfterTie
+  onRestartTradeAfterTie,
+  onClearAuctionSummary,
+  onRestartAuctionAfterBluff
 }) => {
   const [testPlayerId, setTestPlayerId] = useState(currentPlayerId);
 
@@ -82,6 +86,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
               onPlaceBid={onPlaceBidInAuction}
               onEndAuction={onEndAuction}
               onMatchBid={onMatchBid}
+              onClearAuctionSummary={onClearAuctionSummary}
+              onRestartAuctionAfterBluff={onRestartAuctionAfterBluff}
             />
           </div>
         );

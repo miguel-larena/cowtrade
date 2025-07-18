@@ -225,7 +225,15 @@ export const useGameState = () => {
       return {
         ...prev,
         players: updatedPlayers,
-        auctionState: 'none', // Reset to 'none' for next player's turn
+        auctionState: 'summary',
+        auctionSummary: {
+          type: 'matched_bid',
+          message: `${auctioneer.name} matched ${winningBidder.name}'s highest bid of $${prev.currentBid}. ${prev.auctionCard?.name} goes to ${auctioneer.name}`,
+          auctioneerName: auctioneer.name,
+          winnerName: winningBidder.name,
+          bidAmount: prev.currentBid,
+          animalName: prev.auctionCard?.name
+        },
         currentBid: 0,
         currentBidder: null,
         auctionCard: undefined,
@@ -302,7 +310,13 @@ export const useGameState = () => {
                 ...prev,
                 players: updatedPlayers,
                 disqualifiedPlayers: newDisqualifiedPlayers,
-                auctionState: 'none', // Reset to 'none' for next player's turn
+                auctionState: 'summary',
+                auctionSummary: {
+                  type: 'no_bids',
+                  message: `No bids! ${prev.auctionCard.name} goes to ${auctioneer.name}`,
+                  auctioneerName: auctioneer.name,
+                  animalName: prev.auctionCard.name
+                },
                 currentBid: 0,
                 currentBidder: null,
                 auctionCard: undefined,
@@ -322,7 +336,16 @@ export const useGameState = () => {
           return {
             ...prev,
             disqualifiedPlayers: newDisqualifiedPlayers,
-            auctionState: 'in_progress',
+            auctionState: 'summary',
+            auctionSummary: {
+              type: 'bluff_detected',
+              message: `${winningBidder.name} bluffed! They bid $${prev.currentBid}, but only has $${totalMoney}. The auction will restart in 5 seconds`,
+              auctioneerName: auctioneer.name,
+              blufferName: winningBidder.name,
+              bidAmount: prev.currentBid,
+              blufferMoney: totalMoney,
+              animalName: prev.auctionCard?.name
+            },
             currentBid: 0,
             currentBidder: null,
             auctionEndTime: newEndTime,
@@ -382,7 +405,15 @@ export const useGameState = () => {
         return {
           ...prev,
           players: updatedPlayers,
-          auctionState: 'none', // Reset to 'none' for next player's turn
+          auctionState: 'summary',
+          auctionSummary: {
+            type: 'normal_win',
+            message: `${winningBidder.name} wins with a highest bid of $${prev.currentBid}! ${prev.auctionCard?.name} goes to ${winningBidder.name}`,
+            auctioneerName: auctioneer.name,
+            winnerName: winningBidder.name,
+            bidAmount: prev.currentBid,
+            animalName: prev.auctionCard?.name
+          },
           currentBid: 0,
           currentBidder: null,
           auctionCard: undefined,
@@ -428,7 +459,13 @@ export const useGameState = () => {
           return {
             ...prev,
             players: updatedPlayers,
-            auctionState: 'none', // Reset to 'none' for next player's turn
+            auctionState: 'summary',
+            auctionSummary: {
+              type: 'no_bids',
+              message: `No bids! ${prev.auctionCard.name} goes to ${auctioneer.name}`,
+              auctioneerName: auctioneer.name,
+              animalName: prev.auctionCard.name
+            },
             currentBid: 0,
             currentBidder: null,
             auctionCard: undefined,
@@ -931,6 +968,35 @@ export const useGameState = () => {
     }));
   }, []);
 
+  const clearAuctionSummary = useCallback(() => {
+    setGameState(prev => ({
+      ...prev,
+      auctionState: 'none',
+      auctionSummary: undefined
+    }));
+  }, []);
+
+  const restartAuctionAfterBluff = useCallback(() => {
+    setGameState(prev => {
+      if (prev.auctionState !== 'summary' || prev.auctionSummary?.type !== 'bluff_detected') {
+        return prev;
+      }
+
+      // Restart auction with the same card and disqualified players
+      const newEndTime = Date.now() + 60000; // 60 seconds (1 minute)
+      
+      return {
+        ...prev,
+        auctionState: 'in_progress',
+        auctionSummary: undefined,
+        currentBid: 0,
+        currentBidder: null,
+        auctionEndTime: newEndTime
+        // Keep the same auctionCard and disqualifiedPlayers
+      };
+    });
+  }, []);
+
   // Utility functions
   const getCurrentPlayer = useCallback(() => {
     return gameState.players.find(p => p.id === currentPlayerId);
@@ -965,6 +1031,8 @@ export const useGameState = () => {
     placeBidInAuction,
     endAuction,
     matchBid,
+    clearAuctionSummary,
+    restartAuctionAfterBluff,
     
     // Trading actions
     initiateTrade,

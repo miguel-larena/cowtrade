@@ -19,6 +19,8 @@ function App() {
     placeBidInAuction,
     endAuction,
     matchBid,
+    clearAuctionSummary,
+    restartAuctionAfterBluff,
     emptyDeck,
     addAnimalCards,
     initiateTrade,
@@ -88,6 +90,8 @@ function App() {
             onExecuteTrade={executeTrade}
             onCancelTrade={cancelTrade}
             onRestartTradeAfterTie={restartTradeAfterTie}
+            onClearAuctionSummary={clearAuctionSummary}
+            onRestartAuctionAfterBluff={restartAuctionAfterBluff}
           />
         } />
       </Routes>

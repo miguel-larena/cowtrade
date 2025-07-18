@@ -1,6 +1,6 @@
 export type CardType = 'animal' | 'money';
 export type GamePhase = 'lobby' | 'auction' | 'trade' | 'end';
-export type AuctionState = 'none' | 'in_progress' | 'ended' | 'match_bid_phase';
+export type AuctionState = 'none' | 'in_progress' | 'ended' | 'match_bid_phase' | 'summary';
 export type TradeState = 'none' | 'selecting_partner' | 'challenger_selecting_cards' | 'challenger_bidding' | 'challenged_bidding' | 'confirming_trade' | 'trade_complete' | 'trade_tie_summary';
 
 export interface Card {
@@ -36,6 +36,18 @@ export interface GameState {
   auctioneer: string | null;
   auctionEndTime?: number; // timestamp when auction ends
   disqualifiedPlayers: string[]; // list of player IDs who are disqualified from current auction
+  
+  // Auction summary state
+  auctionSummary?: {
+    type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win';
+    message: string;
+    auctioneerName: string;
+    winnerName?: string;
+    bidAmount?: number;
+    blufferName?: string;
+    blufferMoney?: number;
+    animalName?: string;
+  };
   
   // Trading state
   tradeState: TradeState;

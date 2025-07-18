@@ -9,6 +9,8 @@ interface AuctionPanelProps {
   onPlaceBid: (bidderId: string, amount: number) => void;
   onEndAuction: () => void;
   onMatchBid: () => void;
+  onClearAuctionSummary: () => void;
+  onRestartAuctionAfterBluff: () => void;
 }
 
 const AuctionPanel: React.FC<AuctionPanelProps> = ({
@@ -17,10 +19,13 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   onStartAuction,
   onPlaceBid,
   onEndAuction,
-  onMatchBid
+  onMatchBid,
+  onClearAuctionSummary,
+  onRestartAuctionAfterBluff
 }) => {
   const [bidAmount, setBidAmount] = useState<number>(10);
   const [timeLeft, setTimeLeft] = useState<number>(0);
+  const [bluffRestartTimer, setBluffRestartTimer] = useState<number>(5);
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const auctioneer = gameState.players.find(p => p.id === gameState.auctioneer);
 
@@ -39,6 +44,24 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
       return () => clearInterval(interval);
     }
   }, [gameState.auctionState, gameState.auctionEndTime, onEndAuction]);
+
+  // Bluff restart timer effect
+  useEffect(() => {
+    if (gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected') {
+      setBluffRestartTimer(5);
+      const interval = setInterval(() => {
+        setBluffRestartTimer(prev => {
+          if (prev <= 1) {
+            onRestartAuctionAfterBluff();
+            return 0;
+          }
+          return prev - 1;
+        });
+      }, 1000);
+
+      return () => clearInterval(interval);
+    }
+  }, [gameState.auctionState, gameState.auctionSummary?.type, onRestartAuctionAfterBluff]);
 
   const handleBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
@@ -420,6 +443,60 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                 Cannot Match Bid - Not Enough Money (You have ${currentPlayer?.money || 0})
               </div>
             </div>
+          )}
+        </div>
+      )}
+
+      {/* Auction Summary */}
+      {gameState.auctionState === 'summary' && gameState.auctionSummary && (
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          backgroundColor: gameState.auctionSummary.type === 'bluff_detected' ? '#fff3cd' : '#e8f5e8',
+          borderRadius: '8px',
+          border: `2px solid ${gameState.auctionSummary.type === 'bluff_detected' ? '#ffc107' : '#4CAF50'}`,
+          textAlign: 'center'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 16px 0', 
+            color: gameState.auctionSummary.type === 'bluff_detected' ? '#856404' : '#2E7D32'
+          }}>
+            {gameState.auctionSummary.type === 'bluff_detected' ? '🚫 Bluff Detected' : '🎯 Auction Complete'}
+          </h3>
+          <div style={{
+            fontSize: '16px',
+            fontWeight: 'bold',
+            color: '#333',
+            marginBottom: '20px',
+            lineHeight: '1.4'
+          }}>
+            {gameState.auctionSummary.message}
+          </div>
+          {gameState.auctionSummary.type === 'bluff_detected' ? (
+            <div style={{
+              fontSize: '18px',
+              fontWeight: 'bold',
+              color: '#856404',
+              marginBottom: '16px'
+            }}>
+              Restarting in {bluffRestartTimer} seconds...
+            </div>
+          ) : (
+            <button
+              onClick={onClearAuctionSummary}
+              style={{
+                padding: '12px 24px',
+                backgroundColor: '#4CAF50',
+                color: 'white',
+                border: 'none',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '16px',
+                fontWeight: 'bold'
+              }}
+            >
+              Continue
+            </button>
           )}
         </div>
       )}
