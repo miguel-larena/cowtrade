@@ -119,7 +119,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
       backgroundColor: '#f0f8f0'
     }}>
       <h2 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
-        Auction Phase
+        Auction
       </h2>
       
       {/* Turn Indicator */}
@@ -144,16 +144,8 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         </div>
       </div>
       
-      {/* Auction State Display */}
+      {/* Deck Status */}
       <div style={{ marginBottom: '16px' }}>
-        <div style={{ fontSize: '16px', fontWeight: 'bold', marginBottom: '8px' }}>
-          Status: {gameState.auctionState === 'none' ? 'No Auction' : 
-                   gameState.auctionState === 'in_progress' ? 'Auction in Progress' : 
-                   gameState.auctionState === 'match_bid_phase' ? 'Match Bid Phase' :
-                   'Auction Ended'}
-        </div>
-        
-        {/* Deck Status */}
         <div style={{ fontSize: '14px', color: '#666', marginBottom: '8px' }}>
           Animal Cards in Deck: {animalCardsInDeck.length}/40
           {animalCardsInDeck.length === 0 && (
@@ -189,7 +181,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             🃏 Deck Empty
           </div>
           <div style={{ fontSize: '14px', color: '#856404' }}>
-            All animal cards have been auctioned. No more auctions can be started.
+            All animals have been auctioned!
           </div>
         </div>
       )}
@@ -210,7 +202,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
               fontWeight: 'bold'
             }}
           >
-            Start Auction (Draw Card)
+            Draw Card
           </button>
         </div>
       )}
@@ -219,8 +211,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
       {gameState.auctionCard && (
         <div style={{ marginBottom: '20px' }}>
           <h3 style={{ margin: '0 0 12px 0' }}>
-            Current Auction Card:
-            {auctioneer && ` (Auctioneer: ${auctioneer.name})`}
+            {auctioneer && ` ${auctioneer.name} is auctioning`}
           </h3>
           <div style={{ display: 'flex', justifyContent: 'center' }}>
             <CardComponent card={gameState.auctionCard} />
@@ -232,11 +223,11 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
       {gameState.auctionState === 'in_progress' && (
         <div style={{ marginBottom: '16px' }}>
           <div style={{ fontSize: '16px', fontWeight: 'bold' }}>
-            Current Bid: ${gameState.currentBid}
+            Highest Bid: ${gameState.currentBid}
           </div>
           {gameState.currentBidder && (
             <div style={{ fontSize: '14px', color: '#666' }}>
-              Current Bidder: {gameState.players.find(p => p.id === gameState.currentBidder)?.name}
+              Bidder: {gameState.players.find(p => p.id === gameState.currentBidder)?.name}
             </div>
           )}
           
@@ -250,7 +241,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
               borderRadius: '4px'
             }}>
               <div style={{ fontSize: '14px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '8px' }}>
-                🚫 Disqualified Players (Bluffers):
+                🚫 Bluffers:
               </div>
               {gameState.disqualifiedPlayers.map(playerId => {
                 const player = gameState.players.find(p => p.id === playerId);
@@ -382,7 +373,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
               fontStyle: 'italic',
               marginTop: '16px'
             }}>
-              You are the auctioneer and cannot bid on your own auction
+              You are the auctioneer and cannot bid during your own auction
             </div>
           )}
         </div>
@@ -398,15 +389,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             marginBottom: '12px',
             textAlign: 'center'
           }}>
-            Match Bid Phase - Time Left: {timeLeft} seconds
-          </div>
-          <div style={{
-            fontSize: '14px',
-            color: '#666',
-            marginBottom: '16px',
-            textAlign: 'center'
-          }}>
-            You can match the highest bid of ${gameState.currentBid} to keep the card
+            Match the highest bid of ${gameState.currentBid} to keep the card? {timeLeft} seconds left.
           </div>
           {currentPlayer && currentPlayer.money >= gameState.currentBid ? (
             <div style={{ textAlign: 'center' }}>

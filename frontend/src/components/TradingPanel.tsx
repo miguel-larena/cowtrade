@@ -169,7 +169,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
       textAlign: 'center'
     }}>
       <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
-        🎯 Your Turn - Initiate Trade
+        🎯 Trade
       </h3>
       <p style={{ margin: '0 0 16px 0', color: '#666' }}>
         Select a player to trade with (only players with same animal types)
