@@ -1,18 +1,44 @@
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useGameState } from './hooks/useGameState';
 import Lobby from './pages/Lobby';
 import GameBoard from './pages/GameBoard';
 
 function App() {
+  const {
+    gameState,
+    currentPlayerId,
+    addPlayer,
+    startGame,
+    changePhase,
+    nextTurn,
+    handlePlaceBid,
+    handleWinAuction,
+    endGame,
+    isCurrentPlayerTurn,
+    startAuction,
+    placeBidInAuction,
+    endAuction,
+    matchBid,
+    clearAuctionSummary,
+    restartAuctionAfterBluff,
+    emptyDeck,
+    addAnimalCards,
+    initiateTrade,
+    selectTradePartner,
+    selectAnimalCardsForTrade,
+    makeTradeOffer,
+    confirmTrade,
+    executeTrade,
+    cancelTrade,
+    restartTradeAfterTie
+  } = useGameState();
+
   const navigate = useNavigate();
 
-  const handleGameStart = () => {
+  const handleStartGame = () => {
+    startGame();
     // Navigate to the game board
     navigate('/game');
-  };
-
-  const handleBackToLobby = () => {
-    // Navigate back to lobby
-    navigate('/');
   };
 
   return (
@@ -32,10 +58,41 @@ function App() {
       </nav>
       <Routes>
         <Route path="/" element={
-          <Lobby onGameStart={handleGameStart} />
+          <Lobby 
+            players={gameState.players}
+            onStartGame={handleStartGame}
+            onAddPlayer={addPlayer}
+            currentPlayerId={currentPlayerId}
+          />
         } />
         <Route path="/game" element={
-          <GameBoard onBackToLobby={handleBackToLobby} />
+          <GameBoard 
+            gameState={gameState}
+            currentPlayerId={currentPlayerId}
+            onPhaseChange={changePhase}
+            onNextTurn={nextTurn}
+            onPlaceBid={handlePlaceBid}
+            onWinAuction={handleWinAuction}
+            onStartGame={startGame}
+            onEndGame={endGame}
+            isCurrentPlayerTurn={isCurrentPlayerTurn}
+            onStartAuction={startAuction}
+            onPlaceBidInAuction={placeBidInAuction}
+            onEndAuction={endAuction}
+            onMatchBid={matchBid}
+            onEmptyDeck={emptyDeck}
+            onAddAnimalCards={addAnimalCards}
+            onInitiateTrade={initiateTrade}
+            onSelectTradePartner={selectTradePartner}
+            onSelectAnimalCardsForTrade={selectAnimalCardsForTrade}
+            onMakeTradeOffer={makeTradeOffer}
+            onConfirmTrade={confirmTrade}
+            onExecuteTrade={executeTrade}
+            onCancelTrade={cancelTrade}
+            onRestartTradeAfterTie={restartTradeAfterTie}
+            onClearAuctionSummary={clearAuctionSummary}
+            onRestartAuctionAfterBluff={restartAuctionAfterBluff}
+          />
         } />
       </Routes>
     </div>

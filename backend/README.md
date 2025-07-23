@@ -1,81 +1,76 @@
 # Kuhhandel Backend
 
-Backend server for the Kuhhandel card game built with Node.js, Express, and TypeScript.
-
-## Features
-
-- Game state management
-- Auction system with bidding and bluffing
-- Trading system
-- Tuna bonus mechanics
-- RESTful API endpoints
-- CORS support for frontend integration
+A Node.js/Express backend for the Kuhhandel (animal trading) game.
 
 ## Setup
 
-1. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+1. Install dependencies:
+```bash
+npm install
+```
 
-2. **Environment configuration:**
-   ```bash
-   cp env.example .env
-   ```
-   Edit `.env` file with your configuration.
+2. Create a `.env` file (copy from `.env.example`):
+```bash
+PORT=3001
+NODE_ENV=development
+```
 
-3. **Development mode:**
-   ```bash
-   npm run dev
-   ```
+3. Start the development server:
+```bash
+npm run dev
+```
 
-4. **Production build:**
-   ```bash
-   npm run build
-   npm start
-   ```
+4. Build for production:
+```bash
+npm run build
+npm start
+```
 
 ## API Endpoints
 
-### Games
-- `POST /api/games/create` - Create a new game
-- `GET /api/games` - Get all active games
-- `GET /api/games/:gameId` - Get game state
-- `DELETE /api/games/:gameId` - Delete a game
+### Health Check
+- `GET /health` - Check if server is running
 
-### Auctions
-- `POST /api/games/:gameId/auction/start` - Start an auction
-- `POST /api/games/:gameId/auction/bid` - Place a bid
+### Game Management
+- `POST /api/game/create` - Create a new game
+- `GET /api/game/:gameId` - Get game state
+- `POST /api/game/:gameId/join` - Join a game
+- `DELETE /api/game/:gameId` - Delete a game
+- `POST /api/game/:gameId/start` - Start the game
 
-## Environment Variables
-
-- `PORT` - Server port (default: 3001)
-- `NODE_ENV` - Environment (development/production)
-- `FRONTEND_URL` - Frontend URL for CORS
+### Game Actions
+- `POST /api/game/:gameId/auction/start` - Start an auction
+- `POST /api/game/:gameId/auction/bid` - Place a bid
+- `POST /api/game/:gameId/auction/end` - End an auction
+- `POST /api/game/:gameId/auction/match` - Match a bid
+- `POST /api/game/:gameId/trade/initiate` - Initiate a trade
+- `POST /api/game/:gameId/trade/offer` - Make a trade offer
+- `POST /api/game/:gameId/trade/execute` - Execute a trade
 
 ## Project Structure
 
 ```
 src/
-├── types.ts          # TypeScript type definitions
-├── gameData.ts       # Game data (cards, players)
-├── gameManager.ts    # Game state management
-├── app.ts           # Express application setup
-└── routes/
-    └── gameRoutes.ts # API route handlers
+├── controllers/     # Request handlers
+├── services/        # Business logic
+├── routes/          # API routes
+├── types/           # TypeScript types
+├── utils/           # Utility functions
+└── index.ts         # Main server file
 ```
 
 ## Development
 
 The backend uses:
-- **Express** for the web server
-- **TypeScript** for type safety
-- **CORS** for cross-origin requests
-- **Nodemon** for development auto-reload
+- **Express.js** - Web framework
+- **TypeScript** - Type safety
+- **CORS** - Cross-origin requests
+- **Nodemon** - Development server with auto-reload
 
 ## Next Steps
 
-- Add WebSocket support for real-time updates
-- Implement database persistence
-- Add authentication and user management
-- Add more game mechanics (end game conditions, scoring) 
+1. Implement full game logic (auctions, trading, etc.)
+2. Add WebSocket support for real-time updates
+3. Add database persistence
+4. Add authentication and session management
+5. Add input validation and error handling 
