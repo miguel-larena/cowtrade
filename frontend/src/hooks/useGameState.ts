@@ -1,7 +1,7 @@
 import { useState, useCallback } from 'react';
 import { testGameState, animalCards } from '../testData';
 import { placeBid, winAuction, tradeCards } from '../gameLogic';
-import type { GameState, Player, GamePhase, TradeOffer, TradeState } from '../types';
+import type { GameState, Player, GamePhase, TradeOffer, TradeState, Card } from '../types';
 import { selectPaymentCards } from '../utils/payment';
 
 export const useGameState = () => {
@@ -50,6 +50,17 @@ export const useGameState = () => {
     setGameState(prev => winAuction(prev));
   }, []);
 
+  // Helper function to calculate Tuna bonus amount
+  const getTunaBonusAmount = useCallback((tunaNumber: number) => {
+    switch (tunaNumber) {
+      case 1: return 50;
+      case 2: return 100;
+      case 3: return 200;
+      case 4: return 500;
+      default: return 0;
+    }
+  }, []);
+
   // New auction functions
   const startAuction = useCallback((auctioneerId: string) => {
     setGameState(prev => {
@@ -73,6 +84,11 @@ export const useGameState = () => {
       // Select random animal card
       const selectedCard = animalCards[Math.floor(Math.random() * animalCards.length)];
       
+      // Check if the selected card is a Tuna
+      const isTuna = selectedCard.name === 'Tuna';
+      const newTunaCardsDrawn = isTuna ? prev.tunaCardsDrawn + 1 : prev.tunaCardsDrawn;
+      const tunaBonusAmount = isTuna ? getTunaBonusAmount(newTunaCardsDrawn) : 0;
+      
       // Set auction end time (1 minute from now)
       const endTime = Date.now() + 60000; // 60 seconds (1 minute)
 
@@ -80,18 +96,39 @@ export const useGameState = () => {
       // (different auctioneer or no previous auctioneer)
       const shouldResetDisqualified = prev.auctioneer !== auctioneerId || !prev.auctioneer;
 
+      // If it's a Tuna, give bonus money to all players
+      let updatedPlayers = prev.players;
+      if (isTuna && tunaBonusAmount > 0) {
+        console.log(`Tuna drawn! Giving $${tunaBonusAmount} to all players`);
+        updatedPlayers = prev.players.map(player => {
+          const bonusCard: Card = {
+            id: `bonus_${player.id}_tuna_${newTunaCardsDrawn}`,
+            type: 'money',
+            value: tunaBonusAmount,
+            name: tunaBonusAmount.toString()
+          };
+          return {
+            ...player,
+            hand: [...player.hand, bonusCard],
+            money: player.money + tunaBonusAmount
+          };
+        });
+      }
+
       return {
         ...prev,
+        players: updatedPlayers,
         auctionState: 'in_progress',
         auctionCard: selectedCard,
         auctioneer: auctioneerId,
         auctionEndTime: endTime,
         currentBid: 0,
         currentBidder: null,
-        disqualifiedPlayers: shouldResetDisqualified ? [] : prev.disqualifiedPlayers // Only reset for new auctions
+        disqualifiedPlayers: shouldResetDisqualified ? [] : prev.disqualifiedPlayers, // Only reset for new auctions
+        tunaCardsDrawn: newTunaCardsDrawn
       };
     });
-  }, []);
+  }, [getTunaBonusAmount]);
 
   const placeBidInAuction = useCallback((bidderId: string, amount: number) => {
     setGameState(prev => {

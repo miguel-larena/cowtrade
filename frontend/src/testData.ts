@@ -178,6 +178,7 @@ export const testGameState: GameState = {
   auctioneer: null, // No auctioneer initially
   auctionEndTime: undefined, // No end time initially
   disqualifiedPlayers: [], // No disqualified players initially
+  tunaCardsDrawn: 0, // No Tuna cards drawn initially
   
   // Trading state
   tradeState: 'none',

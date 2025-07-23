@@ -207,6 +207,27 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         </div>
       )}
 
+      {/* Tuna Bonus Notification */}
+      {gameState.auctionCard && gameState.auctionCard.name === 'Tuna' && (
+        <div style={{
+          marginBottom: '20px',
+          padding: '16px',
+          backgroundColor: '#e3f2fd',
+          border: '2px solid #2196F3',
+          borderRadius: '8px',
+          textAlign: 'center'
+        }}>
+          <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1976D2', marginBottom: '8px' }}>
+            🐟 Tuna Bonus!
+          </div>
+          <div style={{ fontSize: '14px', color: '#1976D2' }}>
+            All players received ${gameState.tunaCardsDrawn === 1 ? '50' : 
+                                gameState.tunaCardsDrawn === 2 ? '100' : 
+                                gameState.tunaCardsDrawn === 3 ? '200' : '500'}!
+          </div>
+        </div>
+      )}
+
       {/* Auction Card Display */}
       {gameState.auctionCard && (
         <div style={{ marginBottom: '20px' }}>
