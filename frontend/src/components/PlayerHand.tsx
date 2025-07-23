@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Player, Card } from '../types';
 import CardComponent from './Card';
 
@@ -14,7 +14,6 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
   player, 
   currentPlayerId,
   onCardClick, 
-  selectable = false,
   selectedCards = []
 }) => {
   const handleCardClick = (card: Card) => {

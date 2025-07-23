@@ -1,22 +1,23 @@
 import React, { useState } from 'react';
-import type { Player } from '../types';
+import { useGameState } from '../hooks/useGameState';
+
 
 interface LobbyProps {
-  players: Player[];
-  onStartGame?: () => void;
-  onAddPlayer?: (name: string) => void;
-  currentPlayerId?: string;
+  onGameStart: () => void;
 }
 
-const Lobby: React.FC<LobbyProps> = ({ 
-  players, 
-  onStartGame, 
-  onAddPlayer,
-  currentPlayerId 
-}) => {
+const Lobby: React.FC<LobbyProps> = ({ onGameStart }) => {
+  const { 
+    loading, 
+    error, 
+    createGame, 
+    clearError 
+  } = useGameState();
+  
   const [newPlayerName, setNewPlayerName] = useState('');
   const [showAddPlayer, setShowAddPlayer] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [players, setPlayers] = useState<string[]>([]);
 
   const handleAddPlayer = () => {
     const trimmedName = newPlayerName.trim();
@@ -28,7 +29,7 @@ const Lobby: React.FC<LobbyProps> = ({
     
     // Check for duplicate names (case-insensitive)
     const isDuplicate = players.some(player => 
-      player.name.toLowerCase() === trimmedName.toLowerCase()
+      player.toLowerCase() === trimmedName.toLowerCase()
     );
     
     if (isDuplicate) {
@@ -36,15 +37,26 @@ const Lobby: React.FC<LobbyProps> = ({
       return;
     }
     
-    if (onAddPlayer) {
-      onAddPlayer(trimmedName);
-      setNewPlayerName('');
-      setShowAddPlayer(false);
-      setNameError('');
+    setPlayers([...players, trimmedName]);
+    setNewPlayerName('');
+    setShowAddPlayer(false);
+    setNameError('');
+  };
+
+  const handleRemovePlayer = (index: number) => {
+    setPlayers(players.filter((_, i) => i !== index));
+  };
+
+  const handleStartGame = async () => {
+    try {
+      await createGame(players);
+      onGameStart();
+    } catch (err) {
+      console.error('Failed to start game:', err);
     }
   };
 
-  const canStartGame = players.length >= 2;
+  const canStartGame = players.length >= 2 && !loading;
   const canAddPlayer = players.length < 6;
 
   return (
@@ -67,6 +79,35 @@ const Lobby: React.FC<LobbyProps> = ({
       }}>
         🐟 Kuhhandel - Game Lobby
       </h1>
+
+      {error && (
+        <div style={{
+          backgroundColor: '#f8d7da',
+          color: '#721c24',
+          padding: '16px',
+          borderRadius: '8px',
+          marginBottom: '24px',
+          border: '1px solid #f5c6cb',
+          display: 'flex',
+          justifyContent: 'space-between',
+          alignItems: 'center'
+        }}>
+          <span>⚠️ {error}</span>
+          <button
+            onClick={clearError}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: '#721c24',
+              cursor: 'pointer',
+              fontSize: '18px',
+              fontWeight: 'bold'
+            }}
+          >
+            ×
+          </button>
+        </div>
+      )}
 
       <div style={{
         border: '2px solid #e0e0e0',
@@ -107,17 +148,17 @@ const Lobby: React.FC<LobbyProps> = ({
             gap: '12px',
             marginBottom: '20px'
           }}>
-            {players.map((player, index) => (
-              <div key={player.id} style={{
+            {players.map((playerName, index) => (
+              <div key={index} style={{
                 display: 'flex',
                 justifyContent: 'space-between',
                 alignItems: 'center',
                 padding: '16px 20px',
-                backgroundColor: player.id === currentPlayerId ? '#e8f5e8' : '#ffffff',
-                border: player.id === currentPlayerId ? '2px solid #28a745' : '1px solid #dee2e6',
+                backgroundColor: '#ffffff',
+                border: '1px solid #dee2e6',
                 borderRadius: '8px',
                 transition: 'all 0.2s ease',
-                boxShadow: player.id === currentPlayerId ? '0 2px 4px rgba(40,167,69,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
+                boxShadow: '0 1px 3px rgba(0,0,0,0.1)'
               }}>
                 <div style={{ display: 'flex', alignItems: 'center' }}>
                   <span style={{ 
@@ -133,29 +174,31 @@ const Lobby: React.FC<LobbyProps> = ({
                     color: '#2c3e50',
                     fontSize: '16px'
                   }}>
-                    {player.name}
+                    {playerName}
                   </span>
-                  {player.id === currentPlayerId && (
-                    <span style={{ 
-                      marginLeft: '12px',
-                      fontSize: '12px',
-                      color: '#28a745',
-                      fontWeight: 'bold',
-                      backgroundColor: '#d4edda',
-                      padding: '4px 8px',
-                      borderRadius: '12px'
-                    }}>
-                      YOU
-                    </span>
-                  )}
                 </div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  color: '#28a745', 
-                  fontWeight: 'bold' 
-                }}>
-                  ${player.money}
-                </div>
+                <button
+                  onClick={() => handleRemovePlayer(index)}
+                  style={{
+                    background: 'none',
+                    border: 'none',
+                    color: '#dc3545',
+                    cursor: 'pointer',
+                    fontSize: '18px',
+                    fontWeight: 'bold',
+                    padding: '4px 8px',
+                    borderRadius: '4px',
+                    transition: 'background-color 0.2s ease'
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.backgroundColor = '#f8d7da';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.backgroundColor = 'transparent';
+                  }}
+                >
+                  ×
+                </button>
               </div>
             ))}
           </div>
@@ -324,7 +367,7 @@ const Lobby: React.FC<LobbyProps> = ({
         marginTop: '32px'
       }}>
         <button
-          onClick={onStartGame}
+          onClick={handleStartGame}
           disabled={!canStartGame}
           style={{
             padding: '20px 40px',
@@ -352,7 +395,7 @@ const Lobby: React.FC<LobbyProps> = ({
             }
           }}
         >
-          {canStartGame ? '🎮 Start Game' : 'Need at least 2 players'}
+          {loading ? '🔄 Creating Game...' : canStartGame ? '🎮 Start Game' : 'Need at least 2 players'}
         </button>
       </div>
 
