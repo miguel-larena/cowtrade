@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import type { GameState } from '../types';
 import { ApiService } from '../services/api';
 
@@ -38,7 +38,8 @@ export const useGameState = (): UseGameStateReturn => {
   const [error, setError] = useState<string | null>(null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [gameId, setGameId] = useState<string | null>(null);
-  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
+  const [originalPlayerName, setOriginalPlayerName] = useState<string | null>(null);
+  const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
   const handleApiCall = useCallback(async <T>(
     apiCall: () => Promise<T>,
@@ -77,8 +78,8 @@ export const useGameState = (): UseGameStateReturn => {
   useEffect(() => {
     if (gameId) {
       // Clear any existing interval
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
       }
       
       // Start polling every 2 seconds
@@ -86,7 +87,7 @@ export const useGameState = (): UseGameStateReturn => {
         refreshGameState();
       }, 2000);
       
-      setPollingInterval(interval);
+      pollingIntervalRef.current = interval;
       
       // Cleanup on unmount or when gameId changes
       return () => {
@@ -94,12 +95,28 @@ export const useGameState = (): UseGameStateReturn => {
       };
     } else {
       // Clear interval when no game
-      if (pollingInterval) {
-        clearInterval(pollingInterval);
-        setPollingInterval(null);
+      if (pollingIntervalRef.current) {
+        clearInterval(pollingIntervalRef.current);
+        pollingIntervalRef.current = null;
       }
     }
-  }, [gameId, refreshGameState, pollingInterval]);
+  }, [gameId]);
+
+  // Separate effect to handle currentPlayerId validation when game state changes
+  useEffect(() => {
+    if (gameState && originalPlayerName && currentPlayerId) {
+      const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
+      if (!currentPlayer) {
+        // Our current player ID is no longer valid, try to find our player by name
+        const ourPlayer = gameState.players.find(p => 
+          p.name === originalPlayerName || p.name.startsWith(originalPlayerName + ' (')
+        );
+        if (ourPlayer) {
+          setCurrentPlayerId(ourPlayer.id);
+        }
+      }
+    }
+  }, [gameState, originalPlayerName, currentPlayerId]);
 
   // Game management
   const createGame = useCallback(async (playerName: string) => {
@@ -109,6 +126,7 @@ export const useGameState = (): UseGameStateReturn => {
         setGameState(newGameState);
         setGameId(newGameState.id);
         setCurrentPlayerId(newGameState.players[0]?.id || null);
+        setOriginalPlayerName(playerName);
       }
     );
   }, [handleApiCall]);
@@ -119,11 +137,30 @@ export const useGameState = (): UseGameStateReturn => {
       (updatedGameState) => {
         setGameState(updatedGameState);
         setGameId(gameIdToJoin);
-        // Find the player that just joined (check for both original name and potential modified name)
-        const newPlayer = updatedGameState.players.find(p => 
+        setOriginalPlayerName(playerName);
+        
+        // Find the player that just joined
+        // Since we don't have the previous state, we'll use a heuristic:
+        // Look for players with our name and find the one that's NOT the first player
+        // (assuming the first player is the game creator)
+        const matchingPlayers = updatedGameState.players.filter(p => 
           p.name === playerName || p.name.startsWith(playerName + ' (')
         );
-        setCurrentPlayerId(newPlayer?.id || null);
+        
+        if (matchingPlayers.length === 1) {
+          // Only one player with this name, must be us
+          setCurrentPlayerId(matchingPlayers[0].id);
+        } else if (matchingPlayers.length > 1) {
+          // Multiple players with similar names, find the one that's not the first player
+          const firstPlayerId = updatedGameState.players[0].id;
+          const newPlayer = matchingPlayers.find(p => p.id !== firstPlayerId);
+          if (newPlayer) {
+            setCurrentPlayerId(newPlayer.id);
+          } else {
+            // Fallback: use the last matching player
+            setCurrentPlayerId(matchingPlayers[matchingPlayers.length - 1].id);
+          }
+        }
       }
     );
   }, [handleApiCall]);
@@ -148,6 +185,7 @@ export const useGameState = (): UseGameStateReturn => {
         setGameState(null);
         setGameId(null);
         setCurrentPlayerId(null);
+        setOriginalPlayerName(null);
       }
     );
   }, [gameId, handleApiCall]);
