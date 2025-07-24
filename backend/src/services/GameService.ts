@@ -65,11 +65,19 @@ export class GameService {
       throw new Error('Game is full');
     }
 
+    // Check for duplicate names and append a number if needed
+    let finalPlayerName = playerName;
+    let counter = 1;
+    while (game.players.some(p => p.name === finalPlayerName)) {
+      finalPlayerName = `${playerName} (${counter})`;
+      counter++;
+    }
+
     const playerId = generateId();
     const startingHand = createStartingHand();
     const player: Player = {
       id: playerId,
-      name: playerName,
+      name: finalPlayerName,
       hand: startingHand,
       money: 90
     };

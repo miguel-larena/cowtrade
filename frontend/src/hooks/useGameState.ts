@@ -38,6 +38,7 @@ export const useGameState = (): UseGameStateReturn => {
   const [error, setError] = useState<string | null>(null);
   const [currentPlayerId, setCurrentPlayerId] = useState<string | null>(null);
   const [gameId, setGameId] = useState<string | null>(null);
+  const [pollingInterval, setPollingInterval] = useState<NodeJS.Timeout | null>(null);
 
   const handleApiCall = useCallback(async <T>(
     apiCall: () => Promise<T>,
@@ -72,6 +73,34 @@ export const useGameState = (): UseGameStateReturn => {
     }
   }, [gameId]);
 
+  // Start polling when gameId is set
+  useEffect(() => {
+    if (gameId) {
+      // Clear any existing interval
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+      }
+      
+      // Start polling every 2 seconds
+      const interval = setInterval(() => {
+        refreshGameState();
+      }, 2000);
+      
+      setPollingInterval(interval);
+      
+      // Cleanup on unmount or when gameId changes
+      return () => {
+        clearInterval(interval);
+      };
+    } else {
+      // Clear interval when no game
+      if (pollingInterval) {
+        clearInterval(pollingInterval);
+        setPollingInterval(null);
+      }
+    }
+  }, [gameId, refreshGameState, pollingInterval]);
+
   // Game management
   const createGame = useCallback(async (playerName: string) => {
     await handleApiCall(
@@ -90,8 +119,10 @@ export const useGameState = (): UseGameStateReturn => {
       (updatedGameState) => {
         setGameState(updatedGameState);
         setGameId(gameIdToJoin);
-        // Find the player that just joined
-        const newPlayer = updatedGameState.players.find(p => p.name === playerName);
+        // Find the player that just joined (check for both original name and potential modified name)
+        const newPlayer = updatedGameState.players.find(p => 
+          p.name === playerName || p.name.startsWith(playerName + ' (')
+        );
         setCurrentPlayerId(newPlayer?.id || null);
       }
     );

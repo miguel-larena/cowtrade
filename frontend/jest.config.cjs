@@ -2,12 +2,16 @@ module.exports = {
   preset: 'ts-jest',
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/src/setupTests.ts'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '\\.(css|less|scss|sass)$': 'identity-obj-proxy',
   },
   transform: {
     '^.+\\.(ts|tsx)$': ['ts-jest', {
       jsx: 'react-jsx',
+      tsconfig: {
+        esModuleInterop: true,
+        jsx: 'react-jsx',
+      },
     }],
   },
   testMatch: [

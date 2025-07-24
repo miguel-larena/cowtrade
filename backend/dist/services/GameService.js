@@ -59,11 +59,18 @@ class GameService {
         if (game.players.length >= 6) {
             throw new Error('Game is full');
         }
+        // Check for duplicate names and append a number if needed
+        let finalPlayerName = playerName;
+        let counter = 1;
+        while (game.players.some(p => p.name === finalPlayerName)) {
+            finalPlayerName = `${playerName} (${counter})`;
+            counter++;
+        }
         const playerId = (0, idGenerator_1.generateId)();
         const startingHand = (0, gameSetup_1.createStartingHand)();
         const player = {
             id: playerId,
-            name: playerName,
+            name: finalPlayerName,
             hand: startingHand,
             money: 90
         };
