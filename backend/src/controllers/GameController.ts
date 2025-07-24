@@ -107,6 +107,26 @@ export class GameController {
     }
   };
 
+  clearAuctionSummary = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = req.params;
+      const game = await this.gameService.clearAuctionSummary(gameId);
+      res.json(game);
+    } catch (error) {
+      res.status(400).json({ error: 'Failed to clear auction summary' });
+    }
+  };
+
+  restartAuctionAfterBluff = async (req: Request, res: Response) => {
+    try {
+      const { gameId } = req.params;
+      const game = await this.gameService.restartAuctionAfterBluff(gameId);
+      res.json(game);
+    } catch (error) {
+      res.status(400).json({ error: 'Failed to restart auction after bluff' });
+    }
+  };
+
   initiateTrade = async (req: Request, res: Response) => {
     try {
       const { gameId } = req.params;

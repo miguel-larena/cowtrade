@@ -24,7 +24,19 @@ export interface TradeOffer {
   totalValue: number; // sum of money card values
 }
 
+export interface AuctionSummary {
+  type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win';
+  message: string;
+  auctioneerName: string;
+  winnerName?: string;
+  bidAmount?: number;
+  blufferName?: string;
+  blufferMoney?: number;
+  animalName?: string;
+}
+
 export interface GameState {
+  id: string;
   players: Player[];
   deck: Card[];
   currentTurn: string;
@@ -41,16 +53,7 @@ export interface GameState {
   tunaCardsDrawn: number; // number of Tuna cards that have been drawn so far
   
   // Auction summary state
-  auctionSummary?: {
-    type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win';
-    message: string;
-    auctioneerName: string;
-    winnerName?: string;
-    bidAmount?: number;
-    blufferName?: string;
-    blufferMoney?: number;
-    animalName?: string;
-  };
+  auctionSummary?: AuctionSummary;
   
   // Trading state
   tradeState: TradeState;
@@ -59,4 +62,8 @@ export interface GameState {
   tradeOffers: TradeOffer[]; // offers from both players
   tradeConfirmed: boolean; // whether both players confirmed the trade
   selectedAnimalCards: string[]; // animal cards selected by challenger for the trade
+  
+  // Metadata
+  createdAt: Date;
+  updatedAt: Date;
 }

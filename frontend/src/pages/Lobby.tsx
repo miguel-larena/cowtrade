@@ -1,24 +1,31 @@
 import React, { useState } from 'react';
-import type { Player } from '../types';
+import type { GameState } from '../types';
 
 interface LobbyProps {
-  players: Player[];
+  gameState: GameState | null;
+  onCreateGame: (playerName: string) => Promise<void>;
+  onJoinGame: (gameId: string, playerName: string) => Promise<void>;
   onStartGame?: () => void;
-  onAddPlayer?: (name: string) => void;
-  currentPlayerId?: string;
+  currentPlayerId?: string | null;
+  gameId?: string | null;
 }
 
 const Lobby: React.FC<LobbyProps> = ({ 
-  players, 
+  gameState, 
+  onCreateGame,
+  onJoinGame,
   onStartGame, 
-  onAddPlayer,
-  currentPlayerId 
+  currentPlayerId,
+  gameId
 }) => {
   const [newPlayerName, setNewPlayerName] = useState('');
-  const [showAddPlayer, setShowAddPlayer] = useState(false);
+  const [gameIdToJoin, setGameIdToJoin] = useState('');
+  const [showCreateGame, setShowCreateGame] = useState(false);
+  const [showJoinGame, setShowJoinGame] = useState(false);
   const [nameError, setNameError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
-  const handleAddPlayer = () => {
+  const handleCreateGame = async () => {
     const trimmedName = newPlayerName.trim();
     
     if (!trimmedName) {
@@ -26,26 +33,49 @@ const Lobby: React.FC<LobbyProps> = ({
       return;
     }
     
-    // Check for duplicate names (case-insensitive)
-    const isDuplicate = players.some(player => 
-      player.name.toLowerCase() === trimmedName.toLowerCase()
-    );
-    
-    if (isDuplicate) {
-      setNameError('A player with this name already exists');
-      return;
-    }
-    
-    if (onAddPlayer) {
-      onAddPlayer(trimmedName);
+    setIsLoading(true);
+    try {
+      await onCreateGame(trimmedName);
       setNewPlayerName('');
-      setShowAddPlayer(false);
+      setShowCreateGame(false);
       setNameError('');
+    } catch (error) {
+      setNameError('Failed to create game. Please try again.');
+    } finally {
+      setIsLoading(false);
     }
   };
 
-  const canStartGame = players.length >= 2;
-  const canAddPlayer = players.length < 6;
+  const handleJoinGame = async () => {
+    const trimmedName = newPlayerName.trim();
+    const trimmedGameId = gameIdToJoin.trim();
+    
+    if (!trimmedName) {
+      setNameError('Player name cannot be empty');
+      return;
+    }
+    
+    if (!trimmedGameId) {
+      setNameError('Game ID cannot be empty');
+      return;
+    }
+    
+    setIsLoading(true);
+    try {
+      await onJoinGame(trimmedGameId, trimmedName);
+      setNewPlayerName('');
+      setGameIdToJoin('');
+      setShowJoinGame(false);
+      setNameError('');
+    } catch (error) {
+      setNameError('Failed to join game. Please check the game ID and try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const players = gameState?.players || [];
+  const canStartGame = gameState && players.length >= 2 && gameState.currentPhase === 'lobby';
 
   return (
     <div style={{
@@ -68,307 +98,302 @@ const Lobby: React.FC<LobbyProps> = ({
         🐟 Kuhhandel - Game Lobby
       </h1>
 
-      <div style={{
-        border: '2px solid #e0e0e0',
-        borderRadius: '12px',
-        padding: '24px',
-        marginBottom: '24px',
-        backgroundColor: '#ffffff',
-        boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-      }}>
-        <h2 style={{ 
-          margin: '0 0 20px 0', 
-          color: '#2c3e50',
-          fontSize: '24px',
-          fontWeight: '600',
-          borderBottom: '2px solid #ecf0f1',
-          paddingBottom: '12px'
+      {!gameState ? (
+        <div style={{
+          border: '2px solid #e0e0e0',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '24px',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
-          Players ({players.length}/6)
-        </h2>
-        
-        {players.length === 0 ? (
-          <div style={{ 
-            color: '#6c757d', 
-            fontStyle: 'italic',
-            textAlign: 'center',
-            padding: '40px 20px',
-            fontSize: '18px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            border: '2px dashed #dee2e6'
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#2c3e50',
+            fontSize: '24px',
+            fontWeight: '600',
+            borderBottom: '2px solid #ecf0f1',
+            paddingBottom: '12px'
           }}>
-            <div style={{ fontSize: '32px', marginBottom: '12px' }}>👥</div>
-            No players yet. Add some players to start!
-          </div>
-        ) : (
-          <div style={{ 
-            display: 'grid', 
-            gap: '12px',
-            marginBottom: '20px'
-          }}>
-            {players.map((player, index) => (
-              <div key={player.id} style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '16px 20px',
-                backgroundColor: player.id === currentPlayerId ? '#e8f5e8' : '#ffffff',
-                border: player.id === currentPlayerId ? '2px solid #28a745' : '1px solid #dee2e6',
+            Welcome to Kuhhandel!
+          </h2>
+          
+          <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
+            <button
+              onClick={() => setShowCreateGame(true)}
+              disabled={isLoading}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                backgroundColor: '#27ae60',
+                color: 'white',
+                border: 'none',
                 borderRadius: '8px',
-                transition: 'all 0.2s ease',
-                boxShadow: player.id === currentPlayerId ? '0 2px 4px rgba(40,167,69,0.2)' : '0 1px 3px rgba(0,0,0,0.1)'
-              }}>
-                <div style={{ display: 'flex', alignItems: 'center' }}>
-                  <span style={{ 
-                    fontWeight: '600', 
-                    color: '#2c3e50',
-                    fontSize: '16px',
-                    marginRight: '8px'
-                  }}>
-                    {index + 1}.
-                  </span>
-                  <span style={{ 
-                    fontWeight: '600', 
-                    color: '#2c3e50',
-                    fontSize: '16px'
-                  }}>
-                    {player.name}
-                  </span>
-                  {player.id === currentPlayerId && (
-                    <span style={{ 
-                      marginLeft: '12px',
-                      fontSize: '12px',
-                      color: '#28a745',
-                      fontWeight: 'bold',
-                      backgroundColor: '#d4edda',
-                      padding: '4px 8px',
-                      borderRadius: '12px'
-                    }}>
-                      YOU
-                    </span>
-                  )}
-                </div>
-                <div style={{ 
-                  fontSize: '16px', 
-                  color: '#28a745', 
-                  fontWeight: 'bold' 
-                }}>
-                  ${player.money}
-                </div>
-              </div>
-            ))}
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.6 : 1
+              }}
+            >
+              Create New Game
+            </button>
+            
+            <button
+              onClick={() => setShowJoinGame(true)}
+              disabled={isLoading}
+              style={{
+                padding: '12px 24px',
+                fontSize: '16px',
+                backgroundColor: '#3498db',
+                color: 'white',
+                border: 'none',
+                borderRadius: '8px',
+                cursor: isLoading ? 'not-allowed' : 'pointer',
+                opacity: isLoading ? 0.6 : 1
+              }}
+            >
+              Join Existing Game
+            </button>
           </div>
-        )}
 
-        {canAddPlayer && !showAddPlayer && (
-          <button
-            onClick={() => setShowAddPlayer(true)}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#007bff',
-              color: 'white',
-              border: 'none',
-              borderRadius: '8px',
-              cursor: 'pointer',
-              fontSize: '14px',
-              fontWeight: '600',
-              transition: 'all 0.2s ease',
-              boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.transform = 'translateY(-1px)';
-              e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-            }}
-          >
-            ➕ Add Player
-          </button>
-        )}
-
-        {canAddPlayer && showAddPlayer && (
-          <div style={{ 
-            marginTop: '20px',
-            padding: '20px',
-            backgroundColor: '#f8f9fa',
-            borderRadius: '8px',
-            border: '1px solid #e9ecef'
-          }}>
-            <div style={{ marginBottom: '12px' }}>
-              <input
-                type="text"
-                value={newPlayerName}
-                onChange={(e) => {
-                  setNewPlayerName(e.target.value);
-                  setNameError(''); // Clear error when user types
-                }}
-                placeholder="Enter player name"
-                style={{
-                  padding: '12px 16px',
-                  borderRadius: '8px',
-                  border: nameError ? '2px solid #dc3545' : '1px solid #ced4da',
-                  width: '250px',
-                  fontSize: '14px',
-                  outline: 'none',
-                  transition: 'border-color 0.2s ease'
-                }}
-                onKeyPress={(e) => e.key === 'Enter' && handleAddPlayer()}
-                onFocus={(e) => {
-                  e.target.style.borderColor = '#007bff';
-                }}
-                onBlur={(e) => {
-                  e.target.style.borderColor = nameError ? '#dc3545' : '#ced4da';
-                }}
-              />
+          {showCreateGame && (
+            <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+              <h3>Create New Game</h3>
+              <div style={{ marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+              {nameError && <div style={{ color: 'red', marginBottom: '8px' }}>{nameError}</div>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleCreateGame}
+                  disabled={isLoading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#27ae60',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isLoading ? 'Creating...' : 'Create Game'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowCreateGame(false);
+                    setNewPlayerName('');
+                    setNameError('');
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
             </div>
-            <div style={{ display: 'flex', gap: '12px', alignItems: 'center' }}>
-              <button
-                onClick={handleAddPlayer}
-                disabled={!newPlayerName.trim()}
-                style={{
-                  padding: '10px 20px',
-                  backgroundColor: newPlayerName.trim() ? '#28a745' : '#e9ecef',
-                  color: newPlayerName.trim() ? 'white' : '#6c757d',
-                  border: 'none',
+          )}
+
+          {showJoinGame && (
+            <div style={{ marginTop: '24px', padding: '20px', backgroundColor: '#f8f9fa', borderRadius: '8px' }}>
+              <h3>Join Existing Game</h3>
+              <div style={{ marginBottom: '16px' }}>
+                <input
+                  type="text"
+                  placeholder="Enter game ID"
+                  value={gameIdToJoin}
+                  onChange={(e) => setGameIdToJoin(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px',
+                    marginBottom: '8px'
+                  }}
+                />
+                <input
+                  type="text"
+                  placeholder="Enter your name"
+                  value={newPlayerName}
+                  onChange={(e) => setNewPlayerName(e.target.value)}
+                  style={{
+                    width: '100%',
+                    padding: '8px 12px',
+                    fontSize: '16px',
+                    border: '1px solid #ddd',
+                    borderRadius: '4px'
+                  }}
+                />
+              </div>
+              {nameError && <div style={{ color: 'red', marginBottom: '8px' }}>{nameError}</div>}
+              <div style={{ display: 'flex', gap: '8px' }}>
+                <button
+                  onClick={handleJoinGame}
+                  disabled={isLoading}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#3498db',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: isLoading ? 'not-allowed' : 'pointer'
+                  }}
+                >
+                  {isLoading ? 'Joining...' : 'Join Game'}
+                </button>
+                <button
+                  onClick={() => {
+                    setShowJoinGame(false);
+                    setNewPlayerName('');
+                    setGameIdToJoin('');
+                    setNameError('');
+                  }}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#6c757d',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer'
+                  }}
+                >
+                  Cancel
+                </button>
+              </div>
+            </div>
+          )}
+        </div>
+      ) : (
+        <div style={{
+          border: '2px solid #e0e0e0',
+          borderRadius: '12px',
+          padding: '24px',
+          marginBottom: '24px',
+          backgroundColor: '#ffffff',
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+        }}>
+          <h2 style={{ 
+            margin: '0 0 20px 0', 
+            color: '#2c3e50',
+            fontSize: '24px',
+            fontWeight: '600',
+            borderBottom: '2px solid #ecf0f1',
+            paddingBottom: '12px'
+          }}>
+            Game: {gameId} - Players ({players.length}/6)
+          </h2>
+          
+          {players.length === 0 ? (
+            <div style={{ 
+              color: '#6c757d', 
+              fontStyle: 'italic',
+              textAlign: 'center',
+              padding: '40px 20px',
+              fontSize: '18px',
+              backgroundColor: '#f8f9fa',
+              borderRadius: '8px',
+              border: '2px dashed #dee2e6'
+            }}>
+              No players have joined yet. Share the game ID with others to start playing!
+            </div>
+          ) : (
+            <div style={{ marginBottom: '20px' }}>
+              {players.map((player, index) => (
+                <div key={player.id} style={{
+                  display: 'flex',
+                  alignItems: 'center',
+                  padding: '12px 16px',
+                  marginBottom: '8px',
+                  backgroundColor: '#f8f9fa',
                   borderRadius: '8px',
-                  cursor: newPlayerName.trim() ? 'pointer' : 'not-allowed',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  transition: 'all 0.2s ease',
-                  boxShadow: newPlayerName.trim() ? '0 2px 4px rgba(0,0,0,0.1)' : 'none'
-                }}
-                onMouseEnter={(e) => {
-                  if (newPlayerName.trim()) {
-                    e.currentTarget.style.transform = 'translateY(-1px)';
-                    e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                  }
-                }}
-                onMouseLeave={(e) => {
-                  if (newPlayerName.trim()) {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
-                  }
-                }}
-              >
-                ✅ Add
-              </button>
+                  border: '1px solid #e9ecef'
+                }}>
+                  <div style={{
+                    width: '32px',
+                    height: '32px',
+                    borderRadius: '50%',
+                    backgroundColor: '#3498db',
+                    color: 'white',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    marginRight: '12px',
+                    fontWeight: 'bold'
+                  }}>
+                    {index + 1}
+                  </div>
+                  <span style={{ fontSize: '16px', fontWeight: '500' }}>
+                    {player.name}
+                    {player.id === currentPlayerId && (
+                      <span style={{ 
+                        marginLeft: '8px', 
+                        fontSize: '12px', 
+                        backgroundColor: '#27ae60', 
+                        color: 'white', 
+                        padding: '2px 6px', 
+                        borderRadius: '4px' 
+                      }}>
+                        You
+                      </span>
+                    )}
+                  </span>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {canStartGame && onStartGame && (
+            <div style={{ textAlign: 'center' }}>
               <button
-                onClick={() => {
-                  setShowAddPlayer(false);
-                  setNewPlayerName('');
-                  setNameError('');
-                }}
+                onClick={onStartGame}
                 style={{
-                  padding: '10px 20px',
-                  backgroundColor: '#dc3545',
+                  padding: '12px 32px',
+                  fontSize: '18px',
+                  backgroundColor: '#e74c3c',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  transition: 'all 0.2s ease',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'translateY(-1px)';
-                  e.currentTarget.style.boxShadow = '0 4px 8px rgba(0,0,0,0.15)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'translateY(0)';
-                  e.currentTarget.style.boxShadow = '0 2px 4px rgba(0,0,0,0.1)';
+                  fontWeight: 'bold'
                 }}
               >
-                ❌ Cancel
+                Start Game
               </button>
             </div>
-            {nameError && (
-              <div style={{
-                color: '#dc3545',
-                fontSize: '14px',
-                marginTop: '8px',
-                fontWeight: '600',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '6px'
-              }}>
-                ⚠️ {nameError}
+          )}
+
+          {gameState.currentPhase !== 'lobby' && (
+            <div style={{ 
+              textAlign: 'center', 
+              padding: '20px', 
+              backgroundColor: '#e8f5e8', 
+              borderRadius: '8px',
+              marginTop: '16px'
+            }}>
+              <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#27ae60', marginBottom: '8px' }}>
+                Game in Progress
               </div>
-            )}
-          </div>
-        )}
-
-        {!canAddPlayer && (
-          <div style={{
-            textAlign: 'center',
-            marginTop: '16px',
-            color: '#ffc107',
-            fontStyle: 'italic',
-            fontSize: '14px',
-            fontWeight: '600',
-            padding: '12px',
-            backgroundColor: '#fff3cd',
-            borderRadius: '8px',
-            border: '1px solid #ffeaa7'
-          }}>
-            🚫 Maximum of 6 players reached
-          </div>
-        )}
-      </div>
-
-      <div style={{ 
-        textAlign: 'center',
-        marginTop: '32px'
-      }}>
-        <button
-          onClick={onStartGame}
-          disabled={!canStartGame}
-          style={{
-            padding: '20px 40px',
-            fontSize: '20px',
-            backgroundColor: canStartGame ? '#28a745' : '#e9ecef',
-            color: canStartGame ? 'white' : '#6c757d',
-            border: 'none',
-            borderRadius: '12px',
-            cursor: canStartGame ? 'pointer' : 'not-allowed',
-            fontWeight: 'bold',
-            transition: 'all 0.2s ease',
-            boxShadow: canStartGame ? '0 4px 12px rgba(40,167,69,0.3)' : 'none',
-            minWidth: '200px'
-          }}
-          onMouseEnter={(e) => {
-            if (canStartGame) {
-              e.currentTarget.style.transform = 'translateY(-2px)';
-              e.currentTarget.style.boxShadow = '0 6px 16px rgba(40,167,69,0.4)';
-            }
-          }}
-          onMouseLeave={(e) => {
-            if (canStartGame) {
-              e.currentTarget.style.transform = 'translateY(0)';
-              e.currentTarget.style.boxShadow = '0 4px 12px rgba(40,167,69,0.3)';
-            }
-          }}
-        >
-          {canStartGame ? '🎮 Start Game' : 'Need at least 2 players'}
-        </button>
-      </div>
-
-      {!canStartGame && (
-        <div style={{
-          textAlign: 'center',
-          marginTop: '20px',
-          color: '#6c757d',
-          fontStyle: 'italic',
-          fontSize: '16px',
-          padding: '16px',
-          backgroundColor: '#f8f9fa',
-          borderRadius: '8px',
-          border: '1px solid #e9ecef'
-        }}>
-          📝 Add at least 2 players to start the game
+              <div style={{ color: '#2c3e50' }}>
+                The game has started! Use the Game Board link above to join the action.
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
