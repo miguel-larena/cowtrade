@@ -21,6 +21,11 @@ export class ApiService {
       throw new Error(errorData.error || `HTTP error! status: ${response.status}`);
     }
 
+    // Handle responses with no content (like 204 No Content)
+    if (response.status === 204 || response.headers.get('content-length') === '0') {
+      return undefined as T;
+    }
+
     return response.json();
   }
 
@@ -46,6 +51,13 @@ export class ApiService {
   static async startGame(gameId: string): Promise<GameState> {
     return this.makeRequest<GameState>(`/${gameId}/start`, {
       method: 'POST',
+    });
+  }
+
+  static async leaveGame(gameId: string, playerId: string): Promise<GameState> {
+    return this.makeRequest<GameState>(`/${gameId}/leave`, {
+      method: 'POST',
+      body: JSON.stringify({ playerId }),
     });
   }
 

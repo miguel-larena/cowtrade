@@ -5,6 +5,7 @@ export declare class GameController {
     createGame: (req: Request, res: Response) => Promise<void>;
     getGame: (req: Request, res: Response) => Promise<Response<any, Record<string, any>> | undefined>;
     joinGame: (req: Request, res: Response) => Promise<void>;
+    leaveGame: (req: Request, res: Response) => Promise<void>;
     deleteGame: (req: Request, res: Response) => Promise<void>;
     startGame: (req: Request, res: Response) => Promise<void>;
     startAuction: (req: Request, res: Response) => Promise<void>;

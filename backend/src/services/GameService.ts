@@ -88,6 +88,30 @@ export class GameService {
     return game;
   }
 
+  async leaveGame(gameId: string, playerId: string): Promise<GameState> {
+    const game = this.games.get(gameId);
+    if (!game) {
+      throw new Error('Game not found');
+    }
+
+    const playerIndex = game.players.findIndex(p => p.id === playerId);
+    if (playerIndex === -1) {
+      throw new Error('Player not found in game');
+    }
+
+    // Remove the player from the game
+    game.players.splice(playerIndex, 1);
+    game.updatedAt = new Date();
+
+    // If no players left, delete the game
+    if (game.players.length === 0) {
+      this.games.delete(gameId);
+      return game;
+    }
+
+    return game;
+  }
+
   async deleteGame(gameId: string): Promise<void> {
     const deleted = this.games.delete(gameId);
     if (!deleted) {

@@ -11,6 +11,7 @@ exports.gameController = gameController;
 router.post('/create', gameController.createGame);
 router.get('/:gameId', gameController.getGame);
 router.post('/:gameId/join', gameController.joinGame);
+router.post('/:gameId/leave', gameController.leaveGame);
 router.delete('/:gameId', gameController.deleteGame);
 // Game action endpoints
 router.post('/:gameId/start', gameController.startGame);

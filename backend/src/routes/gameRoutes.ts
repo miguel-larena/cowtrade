@@ -8,6 +8,7 @@ const gameController = new GameController();
 router.post('/create', gameController.createGame);
 router.get('/:gameId', gameController.getGame);
 router.post('/:gameId/join', gameController.joinGame);
+router.post('/:gameId/leave', gameController.leaveGame);
 router.delete('/:gameId', gameController.deleteGame);
 
 // Game action endpoints

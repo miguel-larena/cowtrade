@@ -4,6 +4,7 @@ export declare class GameService {
     createGame(playerName: string): Promise<GameState>;
     getGame(gameId: string): Promise<GameState | null>;
     joinGame(gameId: string, playerName: string): Promise<GameState>;
+    leaveGame(gameId: string, playerId: string): Promise<GameState>;
     deleteGame(gameId: string): Promise<void>;
     clearAllGames(): void;
     startGame(gameId: string): Promise<GameState>;

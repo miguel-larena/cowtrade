@@ -13,6 +13,7 @@ function App() {
     createGame,
     joinGame,
     startGame,
+    leaveGame,
     deleteGame,
     startAuction,
     placeBid,
@@ -34,6 +35,18 @@ function App() {
       // Navigate to the game board
       navigate('/game');
     }
+  };
+
+  const handleLeaveGame = async () => {
+    await leaveGame();
+    // Navigate back to lobby
+    navigate('/');
+  };
+
+  const handleEndGame = async () => {
+    await deleteGame();
+    // Navigate back to lobby
+    navigate('/');
   };
 
   // Show loading state
@@ -92,6 +105,8 @@ function App() {
             onCreateGame={createGame}
             onJoinGame={joinGame}
             onStartGame={handleStartGame}
+            onLeaveGame={handleLeaveGame}
+            onEndGame={handleEndGame}
             currentPlayerId={currentPlayerId}
             gameId={gameId}
           />

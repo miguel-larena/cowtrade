@@ -39,6 +39,17 @@ class GameController {
                 res.status(400).json({ error: 'Failed to join game' });
             }
         };
+        this.leaveGame = async (req, res) => {
+            try {
+                const { gameId } = req.params;
+                const { playerId } = req.body;
+                const game = await this.gameService.leaveGame(gameId, playerId);
+                res.json(game);
+            }
+            catch (error) {
+                res.status(400).json({ error: 'Failed to leave game' });
+            }
+        };
         this.deleteGame = async (req, res) => {
             try {
                 const { gameId } = req.params;

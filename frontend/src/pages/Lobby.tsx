@@ -6,6 +6,8 @@ interface LobbyProps {
   onCreateGame: (playerName: string) => Promise<void>;
   onJoinGame: (gameId: string, playerName: string) => Promise<void>;
   onStartGame?: () => void;
+  onLeaveGame?: () => void;
+  onEndGame?: () => void;
   currentPlayerId?: string | null;
   gameId?: string | null;
 }
@@ -14,7 +16,9 @@ const Lobby: React.FC<LobbyProps> = ({
   gameState, 
   onCreateGame,
   onJoinGame,
-  onStartGame, 
+  onStartGame,
+  onLeaveGame,
+  onEndGame,
   currentPlayerId,
   gameId
 }) => {
@@ -75,7 +79,10 @@ const Lobby: React.FC<LobbyProps> = ({
   };
 
   const players = gameState?.players || [];
-  const canStartGame = gameState && players.length >= 2 && gameState.currentPhase === 'lobby';
+  const isGameCreator = gameState && currentPlayerId && players.length > 0 && players[0].id === currentPlayerId;
+  const canStartGame = gameState && players.length >= 2 && gameState.currentPhase === 'lobby' && isGameCreator;
+  const canLeaveGame = gameState && currentPlayerId && !isGameCreator && gameState.currentPhase === 'lobby';
+  const canEndGame = gameState && isGameCreator && gameState.currentPhase === 'lobby';
 
   return (
     <div style={{
@@ -120,7 +127,13 @@ const Lobby: React.FC<LobbyProps> = ({
           
           <div style={{ display: 'flex', gap: '16px', justifyContent: 'center' }}>
             <button
-              onClick={() => setShowCreateGame(true)}
+              onClick={() => {
+                setShowCreateGame(true);
+                setShowJoinGame(false);
+                setNewPlayerName('');
+                setGameIdToJoin('');
+                setNameError('');
+              }}
               disabled={isLoading}
               style={{
                 padding: '12px 24px',
@@ -137,7 +150,13 @@ const Lobby: React.FC<LobbyProps> = ({
             </button>
             
             <button
-              onClick={() => setShowJoinGame(true)}
+              onClick={() => {
+                setShowJoinGame(true);
+                setShowCreateGame(false);
+                setNewPlayerName('');
+                setGameIdToJoin('');
+                setNameError('');
+              }}
               disabled={isLoading}
               style={{
                 padding: '12px 24px',
@@ -289,15 +308,46 @@ const Lobby: React.FC<LobbyProps> = ({
           boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
         }}>
           <h2 style={{ 
-            margin: '0 0 20px 0', 
+            margin: '0 0 16px 0', 
             color: '#2c3e50',
             fontSize: '24px',
             fontWeight: '600',
             borderBottom: '2px solid #ecf0f1',
             paddingBottom: '12px'
           }}>
-            Game: {gameId} - Players ({players.length}/6)
+            Players ({players.length}/6)
           </h2>
+          
+          <div style={{
+            marginBottom: '20px',
+            padding: '12px 16px',
+            backgroundColor: '#f8f9fa',
+            borderRadius: '8px',
+            border: '2px solid #e9ecef',
+            textAlign: 'center'
+          }}>
+            <div style={{
+              fontSize: '14px',
+              color: '#6c757d',
+              fontWeight: '500',
+              marginBottom: '4px'
+            }}>
+              Game ID
+            </div>
+            <div style={{
+              fontSize: '18px',
+              fontFamily: 'monospace',
+              color: '#2c3e50',
+              fontWeight: '600',
+              backgroundColor: '#ffffff',
+              padding: '8px 12px',
+              borderRadius: '6px',
+              border: '1px solid #dee2e6',
+              letterSpacing: '0.5px'
+            }}>
+              {gameId}
+            </div>
+          </div>
           
           {players.length === 0 ? (
             <div style={{ 
@@ -365,7 +415,7 @@ const Lobby: React.FC<LobbyProps> = ({
                 style={{
                   padding: '12px 32px',
                   fontSize: '18px',
-                  backgroundColor: '#e74c3c',
+                  backgroundColor: '#27ae60',
                   color: 'white',
                   border: 'none',
                   borderRadius: '8px',
@@ -377,6 +427,48 @@ const Lobby: React.FC<LobbyProps> = ({
               </button>
             </div>
           )}
+
+          {/* Game Control Buttons */}
+          <div style={{ 
+            display: 'flex', 
+            gap: '16px', 
+            justifyContent: 'center', 
+            marginTop: '16px' 
+          }}>
+            {canLeaveGame && onLeaveGame && (
+              <button
+                onClick={onLeaveGame}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  backgroundColor: '#6c757d',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                Leave Game
+              </button>
+            )}
+
+            {canEndGame && onEndGame && (
+              <button
+                onClick={onEndGame}
+                style={{
+                  padding: '12px 24px',
+                  fontSize: '16px',
+                  backgroundColor: '#dc3545',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '8px',
+                  cursor: 'pointer'
+                }}
+              >
+                End Game
+              </button>
+            )}
+          </div>
 
           {gameState.currentPhase !== 'lobby' && (
             <div style={{ 

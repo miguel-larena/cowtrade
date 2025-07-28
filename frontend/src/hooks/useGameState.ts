@@ -13,6 +13,7 @@ interface UseGameStateReturn {
   createGame: (playerName: string) => Promise<void>;
   joinGame: (gameId: string, playerName: string) => Promise<void>;
   startGame: () => Promise<void>;
+  leaveGame: () => Promise<void>;
   deleteGame: () => Promise<void>;
   
   // Auction actions
@@ -71,6 +72,23 @@ export const useGameState = (): UseGameStateReturn => {
       setGameState(updatedGameState);
     } catch (err) {
       console.error('Failed to refresh game state:', err);
+      
+      // Check if the game was deleted (404 error)
+      const errorMessage = err instanceof Error ? err.message : String(err);
+      if (errorMessage.includes('Game not found') || errorMessage.includes('404')) {
+        console.log('Game was deleted, kicking player back to lobby');
+        // Clear all game state and return to main lobby
+        setGameState(null);
+        setGameId(null);
+        setCurrentPlayerId(null);
+        setOriginalPlayerName(null);
+        
+        // Clear the polling interval
+        if (pollingIntervalRef.current) {
+          clearInterval(pollingIntervalRef.current);
+          pollingIntervalRef.current = null;
+        }
+      }
     }
   }, [gameId]);
 
@@ -140,9 +158,7 @@ export const useGameState = (): UseGameStateReturn => {
         setOriginalPlayerName(playerName);
         
         // Find the player that just joined
-        // Since we don't have the previous state, we'll use a heuristic:
-        // Look for players with our name and find the one that's NOT the first player
-        // (assuming the first player is the game creator)
+        // Look for players with our name (including modified versions like "yo (1)")
         const matchingPlayers = updatedGameState.players.filter(p => 
           p.name === playerName || p.name.startsWith(playerName + ' (')
         );
@@ -151,15 +167,12 @@ export const useGameState = (): UseGameStateReturn => {
           // Only one player with this name, must be us
           setCurrentPlayerId(matchingPlayers[0].id);
         } else if (matchingPlayers.length > 1) {
-          // Multiple players with similar names, find the one that's not the first player
-          const firstPlayerId = updatedGameState.players[0].id;
-          const newPlayer = matchingPlayers.find(p => p.id !== firstPlayerId);
-          if (newPlayer) {
-            setCurrentPlayerId(newPlayer.id);
-          } else {
-            // Fallback: use the last matching player
-            setCurrentPlayerId(matchingPlayers[matchingPlayers.length - 1].id);
-          }
+          // Multiple players with similar names, find the one with the most recent ID
+          // Since ID format is random + timestamp, we'll use a simpler approach:
+          // Find the player that was NOT in the original game state
+          // We'll assume the last player in the array is the newest one
+          const lastPlayer = matchingPlayers[matchingPlayers.length - 1];
+          setCurrentPlayerId(lastPlayer.id);
         }
       }
     );
@@ -175,6 +188,20 @@ export const useGameState = (): UseGameStateReturn => {
       }
     );
   }, [gameId, handleApiCall]);
+
+  const leaveGame = useCallback(async () => {
+    if (!gameId || !currentPlayerId) return;
+    
+    await handleApiCall(
+      () => ApiService.leaveGame(gameId, currentPlayerId),
+      () => {
+        setGameState(null);
+        setGameId(null);
+        setCurrentPlayerId(null);
+        setOriginalPlayerName(null);
+      }
+    );
+  }, [gameId, currentPlayerId, handleApiCall]);
 
   const deleteGame = useCallback(async () => {
     if (!gameId) return;
@@ -302,6 +329,7 @@ export const useGameState = (): UseGameStateReturn => {
     createGame,
     joinGame,
     startGame,
+    leaveGame,
     deleteGame,
     
     // Auction actions
