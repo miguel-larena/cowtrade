@@ -432,16 +432,17 @@ describe('API Endpoints', () => {
         const gameResponse = await request(app)
           .get(`/api/games/${gameId}`);
 
-        const playerId = gameResponse.body.players[0].id;
+        const player1Id = gameResponse.body.players[0].id;
+        const player2Id = gameResponse.body.players[1].id;
 
         // Start auction
         await request(app)
           .post(`/api/games/${gameId}/auction/start`)
-          .send({ playerId });
+          .send({ playerId: player1Id });
 
         // Place a bid
         const bidData = {
-          playerId,
+          playerId: player2Id,
           amount: 100
         };
 
@@ -597,8 +598,12 @@ describe('API Endpoints', () => {
           .post(`/api/games/${gameId}/auction/bid`)
           .send({
             playerId: player2Id,
-            amount: 100
+            amount: 50
           });
+
+        // End auction to enter match bid phase
+        await request(app)
+          .post(`/api/games/${gameId}/auction/end`);
 
         // Match the bid
         const response = await request(app)

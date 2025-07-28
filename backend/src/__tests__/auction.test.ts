@@ -326,6 +326,39 @@ describe('Auction Logic', () => {
 
       expect(response.body.error).toBe('Failed to end auction');
     });
+
+    it('should end match bid phase when timed out - highest bidder wins', async () => {
+      // Place a bid that auctioneer can afford
+      await request(app)
+        .post(`/api/games/${gameId}/auction/bid`)
+        .send({ playerId: player2Id, amount: 50 });
+
+      // End auction to enter match bid phase
+      await request(app)
+        .post(`/api/games/${gameId}/auction/end`);
+
+      // Verify we're in match bid phase
+      let gameResponse = await request(app)
+        .get(`/api/games/${gameId}`);
+
+      expect(gameResponse.body.auctionState).toBe('match_bid_phase');
+
+      // End the match bid phase (simulating timeout)
+      const response = await request(app)
+        .post(`/api/games/${gameId}/auction/end`)
+        .expect(200);
+
+      expect(response.body.auctionState).toBe('summary');
+      expect(response.body.auctionSummary.type).toBe('normal_win');
+      expect(response.body.auctionSummary.winnerName).toBe('Player 2');
+      expect(response.body.auctionSummary.bidAmount).toBe(50);
+      
+      // Check that winner got the card and lost money
+      const winner = response.body.players.find((p: any) => p.id === player2Id);
+      const auctionCard = response.body.auctionCard;
+      expect(winner.hand).toContainEqual(auctionCard);
+      expect(winner.money).toBe(40); // 90 - 50 = 40
+    });
   });
 
   describe('Match Bid', () => {

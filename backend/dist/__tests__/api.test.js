@@ -351,14 +351,15 @@ describe('API Endpoints', () => {
                 // Get the game to find player IDs
                 const gameResponse = await (0, supertest_1.default)(app)
                     .get(`/api/games/${gameId}`);
-                const playerId = gameResponse.body.players[0].id;
+                const player1Id = gameResponse.body.players[0].id;
+                const player2Id = gameResponse.body.players[1].id;
                 // Start auction
                 await (0, supertest_1.default)(app)
                     .post(`/api/games/${gameId}/auction/start`)
-                    .send({ playerId });
+                    .send({ playerId: player1Id });
                 // Place a bid
                 const bidData = {
-                    playerId,
+                    playerId: player2Id,
                     amount: 100
                 };
                 const response = await (0, supertest_1.default)(app)
@@ -482,8 +483,11 @@ describe('API Endpoints', () => {
                     .post(`/api/games/${gameId}/auction/bid`)
                     .send({
                     playerId: player2Id,
-                    amount: 100
+                    amount: 50
                 });
+                // End auction to enter match bid phase
+                await (0, supertest_1.default)(app)
+                    .post(`/api/games/${gameId}/auction/end`);
                 // Match the bid
                 const response = await (0, supertest_1.default)(app)
                     .post(`/api/games/${gameId}/auction/match`)

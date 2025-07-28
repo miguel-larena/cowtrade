@@ -220,39 +220,64 @@ class GameService {
         if (!game) {
             throw new Error('Game not found');
         }
-        if (game.auctionState !== 'in_progress') {
-            throw new Error('No auction in progress');
-        }
-        // Check if there were any bids
-        if (!game.currentBidder || game.currentBid === 0) {
-            // No bids - auctioneer keeps the card
-            game.auctionState = 'summary';
-            game.auctionSummary = {
-                type: 'no_bids',
-                message: `No one bid on the ${game.auctionCard?.name}. ${game.players.find(p => p.id === game.auctioneer)?.name} keeps the card.`,
-                auctioneerName: game.players.find(p => p.id === game.auctioneer)?.name || 'Unknown',
-                animalName: game.auctionCard?.name
-            };
-            // Give card to auctioneer
-            if (game.auctionCard) {
+        if (game.auctionState === 'in_progress') {
+            // Check if there were any bids
+            if (!game.currentBidder || game.currentBid === 0) {
+                // No bids - auctioneer keeps the card
+                game.auctionState = 'summary';
+                game.auctionSummary = {
+                    type: 'no_bids',
+                    message: `No one bid on the ${game.auctionCard?.name}. ${game.players.find(p => p.id === game.auctioneer)?.name} keeps the card.`,
+                    auctioneerName: game.players.find(p => p.id === game.auctioneer)?.name || 'Unknown',
+                    animalName: game.auctionCard?.name
+                };
+                // Give card to auctioneer
+                if (game.auctionCard) {
+                    const auctioneer = game.players.find(p => p.id === game.auctioneer);
+                    if (auctioneer) {
+                        auctioneer.hand.push(game.auctionCard);
+                    }
+                }
+            }
+            else {
+                // There were bids - check if auctioneer can match
                 const auctioneer = game.players.find(p => p.id === game.auctioneer);
-                if (auctioneer) {
-                    auctioneer.hand.push(game.auctionCard);
+                if (auctioneer && auctioneer.money >= game.currentBid) {
+                    // Auctioneer can match - enter match bid phase
+                    game.auctionState = 'match_bid_phase';
+                    game.auctionEndTime = Date.now() + (15 * 1000); // 15 seconds to decide
+                }
+                else {
+                    // Auctioneer cannot match - winner gets the card
+                    this.finalizeAuction(game, 'normal_win');
+                }
+            }
+        }
+        else if (game.auctionState === 'match_bid_phase') {
+            // Match bid phase timed out - highest bidder wins
+            if (game.currentBidder && game.currentBid > 0) {
+                this.finalizeAuction(game, 'normal_win');
+            }
+            else {
+                // This shouldn't happen, but handle it gracefully
+                game.auctionState = 'summary';
+                game.auctionSummary = {
+                    type: 'no_bids',
+                    message: `No valid bids found. ${game.players.find(p => p.id === game.auctioneer)?.name} keeps the card.`,
+                    auctioneerName: game.players.find(p => p.id === game.auctioneer)?.name || 'Unknown',
+                    animalName: game.auctionCard?.name
+                };
+                // Give card to auctioneer
+                if (game.auctionCard) {
+                    const auctioneer = game.players.find(p => p.id === game.auctioneer);
+                    if (auctioneer) {
+                        auctioneer.hand.push(game.auctionCard);
+                    }
                 }
             }
         }
         else {
-            // There were bids - check if auctioneer can match
-            const auctioneer = game.players.find(p => p.id === game.auctioneer);
-            if (auctioneer && auctioneer.money >= game.currentBid) {
-                // Auctioneer can match - enter match bid phase
-                game.auctionState = 'match_bid_phase';
-                game.auctionEndTime = Date.now() + (15 * 1000); // 15 seconds to decide
-            }
-            else {
-                // Auctioneer cannot match - winner gets the card
-                this.finalizeAuction(game, 'normal_win');
-            }
+            throw new Error('No auction in progress');
         }
         game.updatedAt = new Date();
         return game;
