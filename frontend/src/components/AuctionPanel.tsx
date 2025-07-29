@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import type { GameState } from '../types';
 import CardComponent from './Card';
 
@@ -26,17 +26,22 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   const [bidAmount, setBidAmount] = useState<number>(10);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [bluffRestartTimer, setBluffRestartTimer] = useState<number>(5);
+  const timerExpiredRef = useRef<boolean>(false);
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const auctioneer = gameState.players.find(p => p.id === gameState.auctioneer);
 
   // Timer effect
   useEffect(() => {
     if ((gameState.auctionState === 'in_progress' || gameState.auctionState === 'match_bid_phase') && gameState.auctionEndTime) {
+      // Reset timer expired flag when auction state changes
+      timerExpiredRef.current = false;
+      
       const interval = setInterval(() => {
         const remaining = Math.max(0, Math.ceil((gameState.auctionEndTime! - Date.now()) / 1000));
         setTimeLeft(remaining);
         
-        if (remaining <= 0) {
+        if (remaining <= 0 && !timerExpiredRef.current) {
+          timerExpiredRef.current = true;
           onEndAuction();
         }
       }, 1000);
@@ -103,6 +108,9 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
     currentTurn: gameState.currentTurn,
     isCurrentPlayerTurn,
     auctionState: gameState.auctionState,
+    auctionEndTime: gameState.auctionEndTime,
+    timeLeft,
+    timerExpired: timerExpiredRef.current,
     canStartAuction,
     canDrawCard,
     animalCardsInDeck: animalCardsInDeck.length,

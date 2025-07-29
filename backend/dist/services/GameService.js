@@ -240,17 +240,9 @@ class GameService {
                 }
             }
             else {
-                // There were bids - check if auctioneer can match
-                const auctioneer = game.players.find(p => p.id === game.auctioneer);
-                if (auctioneer && auctioneer.money >= game.currentBid) {
-                    // Auctioneer can match - enter match bid phase
-                    game.auctionState = 'match_bid_phase';
-                    game.auctionEndTime = Date.now() + (15 * 1000); // 15 seconds to decide
-                }
-                else {
-                    // Auctioneer cannot match - winner gets the card
-                    this.finalizeAuction(game, 'normal_win');
-                }
+                // There were bids - auctioneer ALWAYS gets option to match
+                game.auctionState = 'match_bid_phase';
+                game.auctionEndTime = Date.now() + (15 * 1000); // 15 seconds to decide
             }
         }
         else if (game.auctionState === 'match_bid_phase') {
