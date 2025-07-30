@@ -30,7 +30,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const auctioneer = gameState.players.find(p => p.id === gameState.auctioneer);
 
-  // Timer effect
+  // Timer effect - only the auctioneer should end the auction on timeout
   useEffect(() => {
     if ((gameState.auctionState === 'in_progress' || gameState.auctionState === 'match_bid_phase') && gameState.auctionEndTime) {
       // Reset timer expired flag when auction state changes
@@ -40,7 +40,8 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         const remaining = Math.max(0, Math.ceil((gameState.auctionEndTime! - Date.now()) / 1000));
         setTimeLeft(remaining);
         
-        if (remaining <= 0 && !timerExpiredRef.current) {
+        // Only the auctioneer should trigger the timeout
+        if (remaining <= 0 && !timerExpiredRef.current && gameState.auctioneer === currentPlayerId) {
           timerExpiredRef.current = true;
           onEndAuction();
         }
@@ -48,16 +49,19 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
       return () => clearInterval(interval);
     }
-  }, [gameState.auctionState, gameState.auctionEndTime, onEndAuction]);
+  }, [gameState.auctionState, gameState.auctionEndTime, onEndAuction, currentPlayerId, gameState.auctioneer]);
 
-  // Bluff restart timer effect
+  // Bluff restart timer effect - only the auctioneer should restart the auction
   useEffect(() => {
     if (gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected') {
       setBluffRestartTimer(5);
       const interval = setInterval(() => {
         setBluffRestartTimer(prev => {
           if (prev <= 1) {
-            onRestartAuctionAfterBluff();
+            // Only the auctioneer should restart the auction
+            if (gameState.auctioneer === currentPlayerId) {
+              onRestartAuctionAfterBluff();
+            }
             return 0;
           }
           return prev - 1;
@@ -66,7 +70,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
       return () => clearInterval(interval);
     }
-  }, [gameState.auctionState, gameState.auctionSummary?.type, onRestartAuctionAfterBluff]);
+  }, [gameState.auctionState, gameState.auctionSummary?.type, onRestartAuctionAfterBluff, currentPlayerId, gameState.auctioneer]);
 
   const handleBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;

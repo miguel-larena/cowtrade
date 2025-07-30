@@ -1,4 +1,5 @@
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
+import { useEffect } from 'react';
 import { useGameState } from './hooks/useGameState';
 import Lobby from './pages/Lobby';
 import GameBoard from './pages/GameBoard';
@@ -27,9 +28,21 @@ function App() {
     restartAuctionAfterBluff,
     initiateTrade,
     makeTradeOffer,
-    executeTrade,
-    refreshGameState
+    executeTrade
   } = useGameState();
+
+  // Listen for game started event to navigate all players to game board
+  useEffect(() => {
+    const handleGameStarted = () => {
+      navigate('/game');
+    };
+
+    window.addEventListener('gameStarted', handleGameStarted);
+    
+    return () => {
+      window.removeEventListener('gameStarted', handleGameStarted);
+    };
+  }, [navigate]);
 
   const handleStartGame = async () => {
     if (gameState) {
@@ -84,12 +97,18 @@ function App() {
   }
 
   return (
-    <div>
+    <div style={{
+      width: '100vw',
+      minHeight: '100vh',
+      boxSizing: 'border-box'
+    }}>
       <nav style={{
+        width: '100%',
         padding: '16px',
         backgroundColor: '#f5f5f5',
         borderBottom: '1px solid #ddd',
-        marginBottom: '20px'
+        marginBottom: '20px',
+        boxSizing: 'border-box'
       }}>
         <Link to="/" style={{ marginRight: '16px', textDecoration: 'none', color: '#2196F3' }}>
           Lobby
@@ -127,7 +146,6 @@ function App() {
               onInitiateTrade={initiateTrade}
               onMakeTradeOffer={makeTradeOffer}
               onExecuteTrade={executeTrade}
-              onRefreshGameState={refreshGameState}
             />
           ) : (
             <div style={{ 

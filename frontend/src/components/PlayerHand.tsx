@@ -76,8 +76,9 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
       <div style={{ 
         display: 'flex', 
         flexWrap: 'wrap', 
-        gap: '6px',
-        minHeight: '100px'
+        gap: 'clamp(4px, 1vw, 8px)',
+        minHeight: 'clamp(100px, 15vw, 160px)',
+        alignItems: 'flex-start'
       }}>
         {player.hand.length === 0 ? (
           <div style={{ 
@@ -106,14 +107,16 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
           })
         )}
       </div>
-      <div style={{ 
-        marginTop: '6px', 
-        fontSize: 'clamp(12px, 2.5vw, 14px)', 
-        color: '#666',
-        fontWeight: 'bold'
-      }}>
-        Money: ${player.money}
-      </div>
+      {isCurrentPlayer && (
+        <div style={{ 
+          marginTop: '6px', 
+          fontSize: 'clamp(12px, 2.5vw, 14px)', 
+          color: '#666',
+          fontWeight: 'bold'
+        }}>
+          Money: ${player.money}
+        </div>
+      )}
     </div>
   );
 };

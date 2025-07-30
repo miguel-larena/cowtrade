@@ -48,7 +48,15 @@ export class GameService {
   }
 
   async getGame(gameId: string): Promise<GameState | null> {
-    return this.games.get(gameId) || null;
+    const game = this.games.get(gameId) || null;
+    if (game) {
+      console.log(`=== getGame called for ${gameId} ===`);
+      game.players.forEach(player => {
+        const moneyCards = player.hand.filter(c => c.type === 'money');
+        console.log(`${player.name}: $${player.money}, ${moneyCards.length} money cards:`, moneyCards.map(c => `${c.name} ($${c.value})`));
+      });
+    }
+    return game;
   }
 
   async joinGame(gameId: string, playerName: string): Promise<GameState> {
@@ -173,10 +181,30 @@ export class GameService {
       game.tunaCardsDrawn++;
       const bonusAmount = this.calculateTunaBonus(game.tunaCardsDrawn);
       
+      console.log(`=== Tuna Bonus: ${game.tunaCardsDrawn} Tuna drawn, bonus amount: $${bonusAmount} ===`);
+      
       // Give bonus to all players
       game.players.forEach(player => {
+        console.log(`Before Tuna bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
+        
+        // Add money to player's total
         player.money += bonusAmount;
+        
+        // Add the appropriate money card to player's hand
+        const bonusCard: Card = {
+          id: `tuna_bonus_${game.tunaCardsDrawn}_${player.id}_${Date.now()}`,
+          type: 'money',
+          value: bonusAmount,
+          name: bonusAmount.toString()
+        };
+        
+        player.hand.push(bonusCard);
+        
+        console.log(`After Tuna bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
+        console.log(`Added bonus card: ${bonusCard.name} ($${bonusCard.value})`);
       });
+      
+      console.log(`=== Tuna Bonus Complete ===`);
     }
 
     // Set up auction state
@@ -229,8 +257,10 @@ export class GameService {
       throw new Error('Minimum bid is 10');
     }
 
-    // Check if player can afford the bid
-    const canAfford = player.money >= amount;
+    // Check if player has enough money cards to pay the bid (excluding $0 bluff cards)
+    const moneyCards = player.hand.filter(card => card.type === 'money' && card.value > 0);
+    const totalMoneyCards = moneyCards.reduce((sum, card) => sum + card.value, 0);
+    const canAfford = totalMoneyCards >= amount;
     
     if (!canAfford) {
       // Player is bluffing - disqualify them
@@ -240,10 +270,10 @@ export class GameService {
       game.auctionState = 'summary';
       game.auctionSummary = {
         type: 'bluff_detected',
-        message: `${player.name} was caught bluffing! They only have $${player.money} but bid $${amount}. They are disqualified from this auction.`,
+        message: `${player.name} was caught bluffing! They only have $${totalMoneyCards} in money cards but bid $${amount}. They are disqualified from this auction.`,
         auctioneerName: game.players.find(p => p.id === game.auctioneer!)?.name || 'Unknown',
         blufferName: player.name,
-        blufferMoney: player.money,
+        blufferMoney: totalMoneyCards,
         animalName: game.auctionCard?.name,
         bidAmount: amount
       };
@@ -339,8 +369,12 @@ export class GameService {
       throw new Error('Auctioneer not found');
     }
 
-    if (auctioneer.money < game.currentBid) {
-      throw new Error('Not enough money to match the bid');
+    // Check if auctioneer has enough money cards to pay the bid (excluding $0 bluff cards)
+    const moneyCards = auctioneer.hand.filter(card => card.type === 'money' && card.value > 0);
+    const totalMoneyCards = moneyCards.reduce((sum, card) => sum + card.value, 0);
+    
+    if (totalMoneyCards < game.currentBid) {
+      throw new Error('Not enough money cards to match the bid');
     }
 
     // Auctioneer matches the bid
@@ -421,25 +455,40 @@ export class GameService {
     // Transfer money and card
     if (summaryType === 'matched_bid') {
       // Auctioneer matches the bid and keeps the card
-      auctioneer.money -= game.currentBid;
+      // Transfer money cards from auctioneer to winner
+      console.log(`Before transfer - Auctioneer: ${auctioneer.name} ($${auctioneer.money}, ${auctioneer.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`Before transfer - Winner: ${winner.name} ($${winner.money}, ${winner.hand.filter(c => c.type === 'money').length} money cards)`);
+      
+      const transferredCards = this.transferMoneyCards(auctioneer, winner, game.currentBid);
       auctioneer.hand.push(game.auctionCard);
+      
+      console.log(`After transfer - Auctioneer: ${auctioneer.name} ($${auctioneer.money}, ${auctioneer.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`After transfer - Winner: ${winner.name} ($${winner.money}, ${winner.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`Transferred ${transferredCards.length} cards:`, transferredCards.map(c => `${c.name} ($${c.value})`));
       
       game.auctionSummary = {
         type: 'matched_bid',
-        message: `${auctioneer.name} matched the bid of $${game.currentBid} and keeps the ${game.auctionCard.name}.`,
+        message: `${auctioneer.name} matched the bid of $${game.currentBid} and keeps the ${game.auctionCard.name}. ${winner.name} receives $${game.currentBid} in money cards.`,
         auctioneerName: auctioneer.name,
         winnerName: auctioneer.name,
         bidAmount: game.currentBid,
         animalName: game.auctionCard.name
       };
     } else {
-      // Winner gets the card and pays the bid
-      winner.money -= game.currentBid;
+      // Winner gets the card and pays the bid to auctioneer
+      console.log(`Before transfer - Winner: ${winner.name} ($${winner.money}, ${winner.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`Before transfer - Auctioneer: ${auctioneer.name} ($${auctioneer.money}, ${auctioneer.hand.filter(c => c.type === 'money').length} money cards)`);
+      
+      const transferredCards = this.transferMoneyCards(winner, auctioneer, game.currentBid);
       winner.hand.push(game.auctionCard);
+      
+      console.log(`After transfer - Winner: ${winner.name} ($${winner.money}, ${winner.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`After transfer - Auctioneer: ${auctioneer.name} ($${auctioneer.money}, ${auctioneer.hand.filter(c => c.type === 'money').length} money cards)`);
+      console.log(`Transferred ${transferredCards.length} cards:`, transferredCards.map(c => `${c.name} ($${c.value})`));
       
       game.auctionSummary = {
         type: 'normal_win',
-        message: `${winner.name} won the ${game.auctionCard.name} for $${game.currentBid}.`,
+        message: `${winner.name} won the ${game.auctionCard.name} for $${game.currentBid}. ${auctioneer.name} receives $${game.currentBid} in money cards.`,
         auctioneerName: auctioneer.name,
         winnerName: winner.name,
         bidAmount: game.currentBid,
@@ -448,6 +497,91 @@ export class GameService {
     }
 
     game.auctionState = 'summary';
+  }
+
+  private transferMoneyCards(fromPlayer: Player, toPlayer: Player, amount: number): Card[] {
+    const transferredCards: Card[] = [];
+    let remainingAmount = amount;
+    
+    console.log(`=== Starting money transfer: ${fromPlayer.name} -> ${toPlayer.name} for $${amount} ===`);
+    console.log(`From player hand before:`, fromPlayer.hand.map(c => `${c.name} ($${c.value})`));
+    console.log(`To player hand before:`, toPlayer.hand.map(c => `${c.name} ($${c.value})`));
+    
+    // Get money cards (excluding $0 bluff cards) and sort by value (highest first for optimal overpayment)
+    const moneyCards = fromPlayer.hand
+      .filter(card => card.type === 'money' && card.value > 0)
+      .sort((a, b) => b.value - a.value);
+    
+    console.log(`Money cards to transfer (sorted by highest first):`, moneyCards.map(c => `${c.name} ($${c.value})`));
+    
+    // First, try to find exact payment using lowest denominations
+    const exactPaymentCards = fromPlayer.hand
+      .filter(card => card.type === 'money' && card.value > 0)
+      .sort((a, b) => a.value - b.value);
+    
+    let exactPaymentTotal = 0;
+    const exactPayment = [];
+    
+    for (const card of exactPaymentCards) {
+      if (exactPaymentTotal >= amount) break;
+      exactPaymentTotal += card.value;
+      exactPayment.push(card);
+    }
+    
+    console.log(`Exact payment attempt: ${exactPaymentTotal} using ${exactPayment.length} cards`);
+    
+    // If we can make exact payment, use that
+    if (exactPaymentTotal >= amount) {
+      console.log(`Using exact payment strategy`);
+      for (const card of exactPayment) {
+        if (remainingAmount <= 0) break;
+        
+        const cardIndex = fromPlayer.hand.findIndex(c => c.id === card.id);
+        if (cardIndex !== -1) {
+          const removedCard = fromPlayer.hand.splice(cardIndex, 1)[0];
+          console.log(`Removed card: ${removedCard.name} ($${removedCard.value})`);
+          
+          toPlayer.hand.push(removedCard);
+          transferredCards.push(removedCard);
+          remainingAmount -= removedCard.value;
+          
+          console.log(`Remaining amount to transfer: $${remainingAmount}`);
+        }
+      }
+    } else {
+      // If we can't make exact payment, use the smallest single card that covers the amount
+      console.log(`Using overpayment strategy`);
+      const smallestCoveringCard = moneyCards.find(card => card.value >= amount);
+      
+      if (smallestCoveringCard) {
+        const cardIndex = fromPlayer.hand.findIndex(c => c.id === smallestCoveringCard.id);
+        if (cardIndex !== -1) {
+          const removedCard = fromPlayer.hand.splice(cardIndex, 1)[0];
+          console.log(`Removed card: ${removedCard.name} ($${removedCard.value}) - overpayment of $${removedCard.value - amount}`);
+          
+          toPlayer.hand.push(removedCard);
+          transferredCards.push(removedCard);
+          remainingAmount = 0; // Fully covered by this card
+          
+          console.log(`Remaining amount to transfer: $${remainingAmount}`);
+        }
+      }
+    }
+    
+    // Update money totals
+    const actualTransferredAmount = amount - remainingAmount;
+    fromPlayer.money -= actualTransferredAmount;
+    toPlayer.money += actualTransferredAmount;
+    
+    console.log(`=== Transfer complete ===`);
+    console.log(`Actual transferred amount: $${actualTransferredAmount}`);
+    console.log(`From player hand after:`, fromPlayer.hand.map(c => `${c.name} ($${c.value})`));
+    console.log(`To player hand after:`, toPlayer.hand.map(c => `${c.name} ($${c.value})`));
+    console.log(`From player money: ${fromPlayer.money}, money cards: ${fromPlayer.hand.filter(c => c.type === 'money').length}`);
+    console.log(`To player money: ${toPlayer.money}, money cards: ${toPlayer.hand.filter(c => c.type === 'money').length}`);
+    console.log(`Transferred cards:`, transferredCards.map(c => `${c.name} ($${c.value})`));
+    
+    return transferredCards;
   }
 
   private moveToNextTurn(game: GameState): void {

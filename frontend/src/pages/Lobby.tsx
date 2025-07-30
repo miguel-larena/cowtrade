@@ -22,54 +22,56 @@ const Lobby: React.FC<LobbyProps> = ({
   currentPlayerId,
   gameId
 }) => {
-  const [newPlayerName, setNewPlayerName] = useState('');
+  const [createGameName, setCreateGameName] = useState('');
+  const [joinGameName, setJoinGameName] = useState('');
   const [gameIdToJoin, setGameIdToJoin] = useState('');
-  const [nameError, setNameError] = useState('');
+  const [createGameError, setCreateGameError] = useState('');
+  const [joinGameError, setJoinGameError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCreateGame = async () => {
-    const trimmedName = newPlayerName.trim();
+    const trimmedName = createGameName.trim();
     
     if (!trimmedName) {
-      setNameError('Player name cannot be empty');
+      setCreateGameError('Player name cannot be empty');
       return;
     }
     
     setIsLoading(true);
     try {
       await onCreateGame(trimmedName);
-      setNewPlayerName('');
-      setNameError('');
+      setCreateGameName('');
+      setCreateGameError('');
     } catch (error) {
-      setNameError('Failed to create game. Please try again.');
+      setCreateGameError('Failed to create game. Please try again.');
     } finally {
       setIsLoading(false);
     }
   };
 
   const handleJoinGame = async () => {
-    const trimmedName = newPlayerName.trim();
+    const trimmedName = joinGameName.trim();
     const trimmedGameId = gameIdToJoin.trim();
     
     if (!trimmedName) {
-      setNameError('Player name cannot be empty');
+      setJoinGameError('Player name cannot be empty');
       return;
     }
     
     if (!trimmedGameId) {
-      setNameError('Game ID cannot be empty');
+      setJoinGameError('Game ID cannot be empty');
       return;
     }
     
     setIsLoading(true);
     try {
       await onJoinGame(trimmedGameId, trimmedName);
-      setNewPlayerName('');
+      setJoinGameName('');
       setGameIdToJoin('');
-      setNameError('');
+      setJoinGameError('');
     } catch (error) {
-      setNameError('Failed to join game. Please check the game ID and try again.');
+      setJoinGameError('Failed to join game. Please check the game ID and try again.');
     } finally {
       setIsLoading(false);
     }
@@ -104,45 +106,47 @@ const Lobby: React.FC<LobbyProps> = ({
 
   return (
     <div style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '32px 24px',
+      width: '100vw',
+      minHeight: '100vh',
       fontFamily: 'Arial, sans-serif',
       color: '#2c3e50',
       backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
+      padding: '16px',
+      boxSizing: 'border-box'
     }}>
       <h1 style={{ 
         textAlign: 'center', 
         color: '#2c3e50',
-        marginBottom: '40px',
-        fontSize: '36px',
+        marginBottom: 'clamp(24px, 6vw, 40px)',
+        fontSize: 'clamp(24px, 6vw, 36px)',
         fontWeight: 'bold',
-        textShadow: '0 2px 4px rgba(0,0,0,0.1)'
+        fontFamily: 'Arial, sans-serif'
       }}>
-        🐟 None of Your Fishiness
+        <div style={{ fontSize: 'clamp(32px, 8vw, 48px)', marginBottom: '8px' }}>🐟</div>
+        <div>None of Your Fishiness</div>
       </h1>
 
-          {!gameState ? (
+      {!gameState ? (
         <div style={{
-          maxWidth: '600px',
+          width: '100%',
+          maxWidth: 'clamp(600px, 90vw, 1200px)',
           margin: '0 auto',
           display: 'flex',
           flexDirection: 'column',
-          gap: '24px'
+          gap: 'clamp(16px, 4vw, 24px)'
         }}>
           {/* Create Game Section */}
           <div style={{
             border: '2px solid #e0e0e0',
             borderRadius: '12px',
-            padding: '32px',
+            padding: 'clamp(20px, 4vw, 32px)',
             backgroundColor: '#ffffff',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             <h2 style={{ 
-              margin: '0 0 24px 0', 
+              margin: '0 0 clamp(16px, 3vw, 24px) 0', 
               color: '#2c3e50',
-              fontSize: '24px',
+              fontSize: 'clamp(20px, 4vw, 24px)',
               fontWeight: '600',
               borderBottom: '2px solid #ecf0f1',
               paddingBottom: '12px',
@@ -163,8 +167,8 @@ const Lobby: React.FC<LobbyProps> = ({
               <input
                 type="text"
                 placeholder="Enter your name"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
+                value={createGameName}
+                onChange={(e) => setCreateGameName(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -176,7 +180,7 @@ const Lobby: React.FC<LobbyProps> = ({
               />
             </div>
             
-            {nameError && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{nameError}</div>}
+            {createGameError && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{createGameError}</div>}
             
             <button
               onClick={handleCreateGame}
@@ -231,14 +235,14 @@ const Lobby: React.FC<LobbyProps> = ({
           <div style={{
             border: '2px solid #e0e0e0',
             borderRadius: '12px',
-            padding: '32px',
+            padding: 'clamp(20px, 4vw, 32px)',
             backgroundColor: '#ffffff',
             boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
           }}>
             <h2 style={{ 
-              margin: '0 0 24px 0', 
+              margin: '0 0 clamp(16px, 3vw, 24px) 0', 
               color: '#2c3e50',
-              fontSize: '24px',
+              fontSize: 'clamp(20px, 4vw, 24px)',
               fontWeight: '600',
               borderBottom: '2px solid #ecf0f1',
               paddingBottom: '12px',
@@ -284,8 +288,8 @@ const Lobby: React.FC<LobbyProps> = ({
               <input
                 type="text"
                 placeholder="Enter your name"
-                value={newPlayerName}
-                onChange={(e) => setNewPlayerName(e.target.value)}
+                value={joinGameName}
+                onChange={(e) => setJoinGameName(e.target.value)}
                 style={{
                   width: '100%',
                   padding: '12px 16px',
@@ -297,7 +301,7 @@ const Lobby: React.FC<LobbyProps> = ({
               />
             </div>
             
-            {nameError && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{nameError}</div>}
+            {joinGameError && <div style={{ color: 'red', marginBottom: '16px', fontSize: '14px' }}>{joinGameError}</div>}
             
             <button
               onClick={handleJoinGame}
@@ -324,15 +328,17 @@ const Lobby: React.FC<LobbyProps> = ({
         <div style={{
           border: '2px solid #e0e0e0',
           borderRadius: '12px',
-          padding: '24px',
-          marginBottom: '24px',
+          padding: 'clamp(16px, 3vw, 24px)',
+          marginBottom: 'clamp(16px, 3vw, 24px)',
           backgroundColor: '#ffffff',
-          boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
+          boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
+          width: '100%',
+          maxWidth: '100%'
         }}>
           <h2 style={{ 
-            margin: '0 0 16px 0', 
+            margin: '0 0 clamp(12px, 2vw, 16px) 0', 
             color: '#2c3e50',
-            fontSize: '24px',
+            fontSize: 'clamp(20px, 4vw, 24px)',
             fontWeight: '600',
             borderBottom: '2px solid #ecf0f1',
             paddingBottom: '12px'
@@ -360,10 +366,11 @@ const Lobby: React.FC<LobbyProps> = ({
               display: 'flex',
               alignItems: 'center',
               gap: '8px',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              flexWrap: 'wrap'
             }}>
               <div style={{
-                fontSize: '18px',
+                fontSize: 'clamp(14px, 3vw, 18px)',
                 fontFamily: 'monospace',
                 color: '#2c3e50',
                 fontWeight: '600',
@@ -373,7 +380,9 @@ const Lobby: React.FC<LobbyProps> = ({
                 border: '1px solid #dee2e6',
                 letterSpacing: '0.5px',
                 flex: '1',
-                maxWidth: '300px'
+                minWidth: '200px',
+                maxWidth: 'clamp(250px, 50vw, 400px)',
+                wordBreak: 'break-all'
               }}>
                 {gameId}
               </div>

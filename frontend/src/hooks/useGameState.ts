@@ -41,6 +41,7 @@ export const useGameState = (): UseGameStateReturn => {
   const [gameId, setGameId] = useState<string | null>(null);
   const [originalPlayerName, setOriginalPlayerName] = useState<string | null>(null);
   const pollingIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const previousPhaseRef = useRef<string | null>(null);
 
   const handleApiCall = useCallback(async <T>(
     apiCall: () => Promise<T>,
@@ -69,6 +70,29 @@ export const useGameState = (): UseGameStateReturn => {
     
     try {
       const updatedGameState = await ApiService.getGame(gameId);
+      
+      // Debug logging for money card transfers
+      if (gameState && updatedGameState) {
+        console.log(`=== Frontend game state update ===`);
+        
+        // Log all players' money card changes
+        gameState.players.forEach(currentPlayer => {
+          const updatedPlayer = updatedGameState.players.find(p => p.id === currentPlayer.id);
+          if (updatedPlayer) {
+            const currentMoneyCards = currentPlayer.hand.filter(c => c.type === 'money');
+            const updatedMoneyCards = updatedPlayer.hand.filter(c => c.type === 'money');
+            
+            if (currentMoneyCards.length !== updatedMoneyCards.length || 
+                currentPlayer.money !== updatedPlayer.money) {
+              console.log(`${currentPlayer.name} money cards: ${currentMoneyCards.length} -> ${updatedMoneyCards.length}`);
+              console.log(`${currentPlayer.name} money total: $${currentPlayer.money} -> $${updatedPlayer.money}`);
+              console.log(`${currentPlayer.name} money cards before:`, currentMoneyCards.map(c => `${c.name} ($${c.value})`));
+              console.log(`${currentPlayer.name} money cards after:`, updatedMoneyCards.map(c => `${c.name} ($${c.value})`));
+            }
+          }
+        });
+      }
+      
       setGameState(updatedGameState);
     } catch (err) {
       console.error('Failed to refresh game state:', err);
@@ -90,7 +114,7 @@ export const useGameState = (): UseGameStateReturn => {
         }
       }
     }
-  }, [gameId]);
+  }, [gameId, gameState, currentPlayerId]);
 
   // Start polling when gameId is set
   useEffect(() => {
@@ -135,6 +159,22 @@ export const useGameState = (): UseGameStateReturn => {
       }
     }
   }, [gameState, originalPlayerName, currentPlayerId]);
+
+  // Effect to detect game phase changes and trigger navigation
+  useEffect(() => {
+    if (gameState && previousPhaseRef.current === 'lobby' && gameState.currentPhase !== 'lobby') {
+      // Game has started! Trigger navigation by dispatching a custom event
+      window.dispatchEvent(new CustomEvent('gameStarted'));
+    }
+    
+    // Update previous phase reference
+    if (gameState) {
+      previousPhaseRef.current = gameState.currentPhase;
+    } else {
+      // Reset when no game state
+      previousPhaseRef.current = null;
+    }
+  }, [gameState]);
 
   // Game management
   const createGame = useCallback(async (playerName: string) => {

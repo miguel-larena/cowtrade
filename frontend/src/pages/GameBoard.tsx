@@ -2,7 +2,6 @@ import React from 'react';
 import PlayerHand from '../components/PlayerHand';
 import AuctionPanel from '../components/AuctionPanel';
 import TradingPanel from '../components/TradingPanel';
-import GameControls from '../components/GameControls';
 import Scoreboard from '../components/Scoreboard';
 import type { GameState } from '../types';
 
@@ -18,7 +17,6 @@ interface GameBoardProps {
   onInitiateTrade: (initiatorId: string, partnerId: string) => Promise<void>;
   onMakeTradeOffer: (playerId: string, moneyCards: string[], animalCards: string[]) => Promise<void>;
   onExecuteTrade: () => Promise<void>;
-  onRefreshGameState: () => Promise<void>;
 }
 
 const GameBoard: React.FC<GameBoardProps> = ({
@@ -32,8 +30,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onRestartAuctionAfterBluff,
   onInitiateTrade,
   onMakeTradeOffer,
-  onExecuteTrade,
-  onRefreshGameState
+  onExecuteTrade
 }) => {
 
   const renderPhaseContent = () => {
@@ -52,7 +49,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
             boxShadow: '0 2px 8px rgba(0,0,0,0.1)'
           }}>
             <div style={{ fontSize: '24px', marginBottom: '16px' }}>🎮</div>
-            Use the Game Controls to start the game
+            Waiting for the game to start...
           </div>
         );
       
@@ -121,45 +118,52 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
   return (
     <div style={{
-      maxWidth: '1200px',
-      margin: '0 auto',
-      padding: '24px',
+      width: '100vw',
+      minHeight: '100vh',
       fontFamily: 'Arial, sans-serif',
       color: '#2c3e50',
       backgroundColor: '#f8f9fa',
-      minHeight: '100vh'
+      padding: '16px',
+      boxSizing: 'border-box'
     }}>
       <div style={{
+        width: '100%',
         display: 'grid',
-        gridTemplateColumns: '1fr 300px',
+        gridTemplateColumns: '1fr',
         gap: '24px',
         alignItems: 'start'
       }}>
         {/* Main Game Area */}
-        <div>
-          {/* Game Controls */}
-          <GameControls
-            gameState={gameState}
-            currentPlayerId={currentPlayerId || ''}
-            onRefreshGameState={onRefreshGameState}
-          />
-
+        <div style={{
+          width: '100%',
+          maxWidth: '100%'
+        }}>
           {/* Phase Content */}
-          <div style={{ marginTop: '24px' }}>
+          <div style={{
+            width: '100%',
+            marginBottom: '24px'
+          }}>
             {renderPhaseContent()}
           </div>
 
           {/* Player Hands */}
-          <div style={{ marginTop: '24px' }}>
+          <div style={{ 
+            width: '100%',
+            marginTop: '24px' 
+          }}>
             <h2 style={{ 
               margin: '0 0 16px 0', 
               color: '#2c3e50',
-              fontSize: '20px',
+              fontSize: 'clamp(18px, 4vw, 24px)',
               fontWeight: '600'
             }}>
               Player Hands
             </h2>
-            <div style={{ display: 'grid', gap: '16px' }}>
+            <div style={{ 
+              display: 'grid', 
+              gap: '16px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+            }}>
               {gameState.players.map((player) => (
                 <PlayerHand
                   key={player.id}
@@ -172,10 +176,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
           </div>
         </div>
 
-        {/* Sidebar */}
-        <div style={{ position: 'sticky', top: '24px' }}>
-          {/* Scoreboard - Only show when game ends */}
-          {gameState.currentPhase === 'end' && (
+        {/* Sidebar - Only show when game ends */}
+        {gameState.currentPhase === 'end' && (
+          <div style={{
+            width: '100%',
+            maxWidth: '100%',
+            order: -1
+          }}>
             <Scoreboard
               players={gameState.players}
               currentTurn={gameState.currentTurn}
@@ -187,8 +194,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
               auctioneer={gameState.auctioneer}
               auctionSummary={gameState.auctionSummary}
             />
-          )}
-        </div>
+          </div>
+        )}
       </div>
     </div>
   );

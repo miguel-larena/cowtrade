@@ -35,16 +35,21 @@ const CardComponent: React.FC<CardProps> = ({
   };
   const cardStyle = {
     border: selected ? '3px solid #4CAF50' : '2px solid #ccc',
-    borderRadius: '6px',
-    padding: '8px',
+    borderRadius: '8px',
+    padding: 'clamp(6px, 1.5vw, 12px)',
     margin: '2px',
     cursor: disabled ? 'not-allowed' : 'pointer',
     backgroundColor: card.type === 'animal' ? '#f0f8ff' : '#fff8dc',
     opacity: disabled ? 0.6 : 1,
-    minWidth: '60px',
-    maxWidth: '80px',
+    width: 'clamp(70px, 8vw, 120px)',
+    height: 'clamp(100px, 12vw, 160px)',
     textAlign: 'center' as const,
     transition: 'all 0.2s ease',
+    display: 'flex',
+    flexDirection: 'column' as const,
+    justifyContent: 'center',
+    alignItems: 'center',
+    boxSizing: 'border-box' as const,
   };
 
   return (
@@ -57,7 +62,7 @@ const CardComponent: React.FC<CardProps> = ({
         <>
           {card.type === 'money' ? (
             <div className="card-value" style={{ 
-              fontSize: 'clamp(12px, 3vw, 16px)', 
+              fontSize: 'clamp(14px, 2.5vw, 20px)', 
               fontWeight: 'bold', 
               color: '#333', 
               textAlign: 'center',
@@ -70,13 +75,28 @@ const CardComponent: React.FC<CardProps> = ({
             </div>
           ) : (
             <>
-              <div className="card-name" style={{ fontWeight: 'bold', fontSize: 'clamp(10px, 2.5vw, 14px)', textAlign: 'center' }}>
+              <div className="card-name" style={{ 
+                fontWeight: 'bold', 
+                fontSize: 'clamp(10px, 1.8vw, 14px)', 
+                textAlign: 'center',
+                lineHeight: '1.2',
+                marginBottom: 'clamp(2px, 0.5vw, 4px)'
+              }}>
                 {card.name}
               </div>
-              <div className="card-emoji" style={{ fontSize: 'clamp(16px, 4vw, 20px)', textAlign: 'center', margin: '4px 0' }}>
+              <div className="card-emoji" style={{ 
+                fontSize: 'clamp(18px, 3vw, 24px)', 
+                textAlign: 'center', 
+                margin: 'clamp(2px, 0.5vw, 4px) 0'
+              }}>
                 {getAnimalEmoji(card.name)}
               </div>
-              <div className="card-value" style={{ fontSize: 'clamp(12px, 3vw, 16px)', fontWeight: 'bold', color: '#333', textAlign: 'center' }}>
+              <div className="card-value" style={{ 
+                fontSize: 'clamp(12px, 2vw, 16px)', 
+                fontWeight: 'bold', 
+                color: '#333', 
+                textAlign: 'center'
+              }}>
                 {card.value}
               </div>
             </>
@@ -84,7 +104,7 @@ const CardComponent: React.FC<CardProps> = ({
         </>
       ) : card.type === 'money' ? (
         <div className="card-value" style={{ 
-          fontSize: 'clamp(12px, 3vw, 16px)', 
+          fontSize: 'clamp(14px, 2.5vw, 20px)', 
           fontWeight: 'bold', 
           color: '#666', 
           textAlign: 'center',
@@ -97,13 +117,28 @@ const CardComponent: React.FC<CardProps> = ({
         </div>
       ) : (
         <>
-          <div className="card-name" style={{ fontWeight: 'bold', fontSize: 'clamp(10px, 2.5vw, 14px)', textAlign: 'center' }}>
+          <div className="card-name" style={{ 
+            fontWeight: 'bold', 
+            fontSize: 'clamp(10px, 1.8vw, 14px)', 
+            textAlign: 'center',
+            lineHeight: '1.2',
+            marginBottom: 'clamp(2px, 0.5vw, 4px)'
+          }}>
             {card.name}
           </div>
-          <div className="card-emoji" style={{ fontSize: 'clamp(16px, 4vw, 20px)', textAlign: 'center', margin: '4px 0' }}>
+          <div className="card-emoji" style={{ 
+            fontSize: 'clamp(18px, 3vw, 24px)', 
+            textAlign: 'center', 
+            margin: 'clamp(2px, 0.5vw, 4px) 0'
+          }}>
             {getAnimalEmoji(card.name)}
           </div>
-          <div className="card-value" style={{ fontSize: 'clamp(12px, 3vw, 16px)', fontWeight: 'bold', color: '#333', textAlign: 'center' }}>
+          <div className="card-value" style={{ 
+            fontSize: 'clamp(12px, 2vw, 16px)', 
+            fontWeight: 'bold', 
+            color: '#333', 
+            textAlign: 'center'
+          }}>
             {card.value}
           </div>
         </>
