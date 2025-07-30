@@ -85,8 +85,8 @@ const Lobby: React.FC<LobbyProps> = ({
     try {
       await navigator.clipboard.writeText(gameId);
       setCopySuccess(true);
-      // Reset success message after 2 seconds
-      setTimeout(() => setCopySuccess(false), 2000);
+      // Reset success message after 1.5 seconds for better UX
+      setTimeout(() => setCopySuccess(false), 1500);
     } catch (err) {
       // Fallback for older browsers
       const textArea = document.createElement('textarea');
@@ -96,7 +96,7 @@ const Lobby: React.FC<LobbyProps> = ({
       document.execCommand('copy');
       document.body.removeChild(textArea);
       setCopySuccess(true);
-      setTimeout(() => setCopySuccess(false), 2000);
+      setTimeout(() => setCopySuccess(false), 1500);
     }
   };
 
@@ -377,25 +377,71 @@ const Lobby: React.FC<LobbyProps> = ({
               }}>
                 {gameId}
               </div>
-              <button
-                onClick={handleCopyGameId}
-                style={{
-                  padding: '8px 12px',
-                  fontSize: '14px',
-                  backgroundColor: copySuccess ? '#27ae60' : '#3498db',
-                  color: 'white',
-                  border: 'none',
-                  borderRadius: '6px',
-                  cursor: 'pointer',
-                  fontWeight: '500',
-                  transition: 'background-color 0.2s ease',
-                  minWidth: '80px',
-                  whiteSpace: 'nowrap'
-                }}
-                title="Copy Game ID to clipboard"
-              >
-                {copySuccess ? 'Copied!' : 'Copy'}
-              </button>
+              <div style={{ position: 'relative' }}>
+                <button
+                  onClick={handleCopyGameId}
+                  style={{
+                    padding: '8px',
+                    fontSize: '16px',
+                    backgroundColor: 'transparent',
+                    color: copySuccess ? '#27ae60' : '#6c757d',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '32px',
+                    height: '32px',
+                    position: 'relative'
+                  }}
+                  onMouseEnter={(e) => {
+                    const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (tooltip) tooltip.style.opacity = '1';
+                  }}
+                  onMouseLeave={(e) => {
+                    const tooltip = e.currentTarget.nextElementSibling as HTMLElement;
+                    if (tooltip) tooltip.style.opacity = '0';
+                  }}
+                >
+                  {copySuccess ? '✓' : '📋'}
+                </button>
+                <div
+                  style={{
+                    position: 'absolute',
+                    bottom: '100%',
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: '#333',
+                    color: 'white',
+                    padding: '6px 10px',
+                    borderRadius: '4px',
+                    fontSize: '12px',
+                    whiteSpace: 'nowrap',
+                    opacity: '0',
+                    transition: 'opacity 0.2s ease',
+                    pointerEvents: 'none',
+                    zIndex: 1000,
+                    marginBottom: '8px'
+                  }}
+                >
+                  {copySuccess ? 'Copied!' : 'Copy game ID to clipboard'}
+                  <div
+                    style={{
+                      position: 'absolute',
+                      top: '100%',
+                      left: '50%',
+                      transform: 'translateX(-50%)',
+                      width: '0',
+                      height: '0',
+                      borderLeft: '4px solid transparent',
+                      borderRight: '4px solid transparent',
+                      borderTop: '4px solid #333'
+                    }}
+                  />
+                </div>
+              </div>
             </div>
           </div>
           

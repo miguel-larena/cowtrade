@@ -1,5 +1,4 @@
 import { Routes, Route, Link, useNavigate } from 'react-router-dom';
-import { useCallback } from 'react';
 import { useGameState } from './hooks/useGameState';
 import Lobby from './pages/Lobby';
 import GameBoard from './pages/GameBoard';
@@ -7,10 +6,7 @@ import GameBoard from './pages/GameBoard';
 function App() {
   const navigate = useNavigate();
 
-  const handleGameStarted = useCallback(() => {
-    // Navigate to the game board when game starts
-    navigate('/game');
-  }, [navigate]);
+
 
   const {
     gameState,
@@ -33,7 +29,7 @@ function App() {
     makeTradeOffer,
     executeTrade,
     refreshGameState
-  } = useGameState(handleGameStarted);
+  } = useGameState();
 
   const handleStartGame = async () => {
     if (gameState) {
