@@ -469,10 +469,18 @@ describe('Auction Logic', () => {
             await (0, supertest_1.default)(app)
                 .post(`/api/games/${gameId}/auction/bid`)
                 .send({ playerId: player3Id, amount: 50 });
-            // End auction
+            // End auction - should enter match bid phase
+            const endResponse = await (0, supertest_1.default)(app)
+                .post(`/api/games/${gameId}/auction/end`)
+                .expect(200);
+            expect(endResponse.body.auctionState).toBe('match_bid_phase');
+            expect(endResponse.body.currentBid).toBe(50);
+            expect(endResponse.body.currentBidder).toBe(player3Id);
+            // End match bid phase (simulating timeout) - should go to summary
             const response = await (0, supertest_1.default)(app)
                 .post(`/api/games/${gameId}/auction/end`)
                 .expect(200);
+            expect(response.body.auctionState).toBe('summary');
             expect(response.body.auctionSummary.type).toBe('normal_win');
             expect(response.body.auctionSummary.winnerName).toBe('Player 3');
             expect(response.body.disqualifiedPlayers).toContain(player2Id);

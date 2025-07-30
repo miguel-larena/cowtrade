@@ -28,6 +28,7 @@ const Lobby: React.FC<LobbyProps> = ({
   const [showJoinGame, setShowJoinGame] = useState(false);
   const [nameError, setNameError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [copySuccess, setCopySuccess] = useState(false);
 
   const handleCreateGame = async () => {
     const trimmedName = newPlayerName.trim();
@@ -78,6 +79,27 @@ const Lobby: React.FC<LobbyProps> = ({
     }
   };
 
+  const handleCopyGameId = async () => {
+    if (!gameId) return;
+    
+    try {
+      await navigator.clipboard.writeText(gameId);
+      setCopySuccess(true);
+      // Reset success message after 2 seconds
+      setTimeout(() => setCopySuccess(false), 2000);
+    } catch (err) {
+      // Fallback for older browsers
+      const textArea = document.createElement('textarea');
+      textArea.value = gameId;
+      document.body.appendChild(textArea);
+      textArea.select();
+      document.execCommand('copy');
+      document.body.removeChild(textArea);
+      setCopySuccess(true);
+      setTimeout(() => setCopySuccess(false), 2000);
+    }
+  };
+
   const players = gameState?.players || [];
   const isGameCreator = gameState && currentPlayerId && players.length > 0 && players[0].id === currentPlayerId;
   const canStartGame = gameState && players.length >= 2 && gameState.currentPhase === 'lobby' && isGameCreator;
@@ -102,7 +124,7 @@ const Lobby: React.FC<LobbyProps> = ({
         fontWeight: 'bold',
         textShadow: '0 2px 4px rgba(0,0,0,0.1)'
       }}>
-        🐟 Kuhhandel - Game Lobby
+        🐟 none of your fishiness
       </h1>
 
       {!gameState ? (
@@ -330,22 +352,50 @@ const Lobby: React.FC<LobbyProps> = ({
               fontSize: '14px',
               color: '#6c757d',
               fontWeight: '500',
-              marginBottom: '4px'
+              marginBottom: '8px'
             }}>
               Game ID
             </div>
             <div style={{
-              fontSize: '18px',
-              fontFamily: 'monospace',
-              color: '#2c3e50',
-              fontWeight: '600',
-              backgroundColor: '#ffffff',
-              padding: '8px 12px',
-              borderRadius: '6px',
-              border: '1px solid #dee2e6',
-              letterSpacing: '0.5px'
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              justifyContent: 'center'
             }}>
-              {gameId}
+              <div style={{
+                fontSize: '18px',
+                fontFamily: 'monospace',
+                color: '#2c3e50',
+                fontWeight: '600',
+                backgroundColor: '#ffffff',
+                padding: '8px 12px',
+                borderRadius: '6px',
+                border: '1px solid #dee2e6',
+                letterSpacing: '0.5px',
+                flex: '1',
+                maxWidth: '300px'
+              }}>
+                {gameId}
+              </div>
+              <button
+                onClick={handleCopyGameId}
+                style={{
+                  padding: '8px 12px',
+                  fontSize: '14px',
+                  backgroundColor: copySuccess ? '#27ae60' : '#3498db',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontWeight: '500',
+                  transition: 'background-color 0.2s ease',
+                  minWidth: '80px',
+                  whiteSpace: 'nowrap'
+                }}
+                title="Copy Game ID to clipboard"
+              >
+                {copySuccess ? 'Copied!' : 'Copy'}
+              </button>
             </div>
           </div>
           

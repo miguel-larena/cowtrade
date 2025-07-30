@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PlayerHand from '../components/PlayerHand';
 import AuctionPanel from '../components/AuctionPanel';
 import TradingPanel from '../components/TradingPanel';
@@ -35,14 +35,6 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onExecuteTrade,
   onRefreshGameState
 }) => {
-  const [testPlayerId, setTestPlayerId] = useState(currentPlayerId || '');
-
-  // Update test player ID when current player ID changes
-  React.useEffect(() => {
-    if (currentPlayerId) {
-      setTestPlayerId(currentPlayerId);
-    }
-  }, [currentPlayerId]);
 
   const renderPhaseContent = () => {
     switch (gameState.currentPhase) {
@@ -69,7 +61,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           <div>
             <AuctionPanel
               gameState={gameState}
-              currentPlayerId={testPlayerId}
+              currentPlayerId={currentPlayerId || ''}
               onStartAuction={onStartAuction}
               onPlaceBid={onPlaceBid}
               onEndAuction={onEndAuction}
@@ -84,7 +76,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
         return (
           <TradingPanel
             gameState={gameState}
-            currentPlayerId={testPlayerId}
+            currentPlayerId={currentPlayerId || ''}
             onInitiateTrade={onInitiateTrade}
             onMakeTradeOffer={onMakeTradeOffer}
             onExecuteTrade={onExecuteTrade}
@@ -148,7 +140,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
           {/* Game Controls */}
           <GameControls
             gameState={gameState}
-            currentPlayerId={testPlayerId}
+            currentPlayerId={currentPlayerId || ''}
             onRefreshGameState={onRefreshGameState}
           />
 
@@ -172,7 +164,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 <PlayerHand
                   key={player.id}
                   player={player}
-                  isCurrentPlayer={player.id === testPlayerId}
+                  isCurrentPlayer={player.id === currentPlayerId}
                   isCurrentTurn={gameState.currentTurn === player.id}
                 />
               ))}
@@ -182,55 +174,20 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
         {/* Sidebar */}
         <div style={{ position: 'sticky', top: '24px' }}>
-          {/* Scoreboard */}
-          <Scoreboard
-            players={gameState.players}
-            currentTurn={gameState.currentTurn}
-            currentPhase={gameState.currentPhase}
-            auctionState={gameState.auctionState}
-            auctionCard={gameState.auctionCard}
-            currentBid={gameState.currentBid}
-            currentBidder={gameState.currentBidder}
-            auctioneer={gameState.auctioneer}
-            auctionSummary={gameState.auctionSummary}
-          />
-
-          {/* Player Selection (for testing) */}
-          <div style={{
-            marginTop: '24px',
-            padding: '16px',
-            backgroundColor: '#ffffff',
-            borderRadius: '8px',
-            border: '1px solid #e9ecef',
-            boxShadow: '0 2px 4px rgba(0,0,0,0.1)'
-          }}>
-            <h3 style={{ 
-              margin: '0 0 12px 0', 
-              fontSize: '16px',
-              fontWeight: '600',
-              color: '#2c3e50'
-            }}>
-              Test Player Selection
-            </h3>
-            <select
-              value={testPlayerId}
-              onChange={(e) => setTestPlayerId(e.target.value)}
-              style={{
-                width: '100%',
-                padding: '8px 12px',
-                fontSize: '14px',
-                border: '1px solid #ddd',
-                borderRadius: '4px',
-                backgroundColor: '#ffffff'
-              }}
-            >
-              {gameState.players.map((player) => (
-                <option key={player.id} value={player.id}>
-                  {player.name} {player.id === currentPlayerId ? '(You)' : ''}
-                </option>
-              ))}
-            </select>
-          </div>
+          {/* Scoreboard - Only show when game ends */}
+          {gameState.currentPhase === 'end' && (
+            <Scoreboard
+              players={gameState.players}
+              currentTurn={gameState.currentTurn}
+              currentPhase={gameState.currentPhase}
+              auctionState={gameState.auctionState}
+              auctionCard={gameState.auctionCard}
+              currentBid={gameState.currentBid}
+              currentBidder={gameState.currentBidder}
+              auctioneer={gameState.auctioneer}
+              auctionSummary={gameState.auctionSummary}
+            />
+          )}
         </div>
       </div>
     </div>
