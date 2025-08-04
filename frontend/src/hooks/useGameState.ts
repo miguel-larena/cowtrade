@@ -71,9 +71,14 @@ export const useGameState = (): UseGameStateReturn => {
     try {
       const updatedGameState = await ApiService.getGame(gameId);
       
-      // Debug logging for money card transfers
+      // Debug logging for money card transfers and Tuna bonuses
       if (gameState && updatedGameState) {
         console.log(`=== Frontend game state update ===`);
+        
+        // Check for Tuna bonus
+        if (updatedGameState.tunaCardsDrawn !== gameState.tunaCardsDrawn) {
+          console.log(`🐟 TUNA BONUS DETECTED: ${gameState.tunaCardsDrawn} -> ${updatedGameState.tunaCardsDrawn}`);
+        }
         
         // Log all players' money card changes
         gameState.players.forEach(currentPlayer => {
@@ -88,6 +93,12 @@ export const useGameState = (): UseGameStateReturn => {
               console.log(`${currentPlayer.name} money total: $${currentPlayer.money} -> $${updatedPlayer.money}`);
               console.log(`${currentPlayer.name} money cards before:`, currentMoneyCards.map(c => `${c.name} ($${c.value})`));
               console.log(`${currentPlayer.name} money cards after:`, updatedMoneyCards.map(c => `${c.name} ($${c.value})`));
+              
+              // Check for Tuna bonus cards specifically
+              const tunaBonusCards = updatedMoneyCards.filter(c => c.id.includes('tuna_bonus'));
+              if (tunaBonusCards.length > 0) {
+                console.log(`🎯 TUNA BONUS CARDS FOUND for ${currentPlayer.name}:`, tunaBonusCards.map(c => `${c.name} ($${c.value})`));
+              }
             }
           }
         });

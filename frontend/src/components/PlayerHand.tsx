@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import type { Player, Card } from '../types';
 import CardComponent from './Card';
 
@@ -19,6 +19,13 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
   selectable = false,
   selectedCards = []
 }) => {
+  // Debug logging for Tuna bonus cards
+  React.useEffect(() => {
+    const tunaBonusCards = player.hand.filter(card => card.id.includes('tuna_bonus'));
+    if (tunaBonusCards.length > 0) {
+      console.log(`🎯 PlayerHand: ${player.name} has ${tunaBonusCards.length} Tuna bonus cards:`, tunaBonusCards.map(c => `${c.name} ($${c.value})`));
+    }
+  }, [player.hand, player.name]);
   const handleCardClick = (card: Card) => {
     onCardClick?.(card);
   };

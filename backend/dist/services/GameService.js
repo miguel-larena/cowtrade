@@ -161,7 +161,7 @@ class GameService {
                 player.money += bonusAmount;
                 // Add the appropriate money card to player's hand
                 const bonusCard = {
-                    id: `tuna_bonus_${game.tunaCardsDrawn}_${player.id}_${Date.now()}`,
+                    id: `tuna_bonus_${game.tunaCardsDrawn}_${player.id}_${(0, idGenerator_1.generateId)()}`,
                     type: 'money',
                     value: bonusAmount,
                     name: bonusAmount.toString()
