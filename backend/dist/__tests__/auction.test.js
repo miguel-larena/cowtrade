@@ -70,6 +70,11 @@ describe('Auction Logic', () => {
                 // All players should have received bonus money
                 response.body.players.forEach((player) => {
                     expect(player.money).toBeGreaterThan(90); // Should have received bonus
+                    // Check that money cards were actually added to hands
+                    const moneyCards = player.hand.filter((card) => card.type === 'money');
+                    const tunaBonusCards = moneyCards.filter((card) => card.id.includes('tuna_bonus'));
+                    expect(tunaBonusCards.length).toBe(1); // Should have 1 Tuna bonus card
+                    expect(tunaBonusCards[0].value).toBe(50); // First Tuna should give $50
                 });
             }
         });

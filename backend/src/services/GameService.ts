@@ -499,6 +499,17 @@ export class GameService {
     game.auctionState = 'summary';
   }
 
+  private getCombinations(cards: Card[], size: number): Card[][] {
+    if (size === 0) return [[]];
+    if (cards.length === 0) return [];
+    
+    const [first, ...rest] = cards;
+    const withoutFirst = this.getCombinations(rest, size);
+    const withFirst = this.getCombinations(rest, size - 1).map(combination => [first, ...combination]);
+    
+    return [...withoutFirst, ...withFirst];
+  }
+
   private transferMoneyCards(fromPlayer: Player, toPlayer: Player, amount: number): Card[] {
     const transferredCards: Card[] = [];
     let remainingAmount = amount;
@@ -514,7 +525,7 @@ export class GameService {
     
     console.log(`Money cards to transfer (sorted by highest first):`, moneyCards.map(c => `${c.name} ($${c.value})`));
     
-    // First, try to find exact payment using lowest denominations
+    // Strategy 1: Try to find exact payment using lowest denominations
     const exactPaymentCards = fromPlayer.hand
       .filter(card => card.type === 'money' && card.value > 0)
       .sort((a, b) => a.value - b.value);
@@ -530,9 +541,20 @@ export class GameService {
     
     console.log(`Exact payment attempt: ${exactPaymentTotal} using ${exactPayment.length} cards`);
     
-    // If we can make exact payment, use that
-    if (exactPaymentTotal >= amount) {
-      console.log(`Using exact payment strategy`);
+    // Strategy 2: Find the smallest single card that covers the amount
+    const smallestCoveringCard = moneyCards.find(card => card.value >= amount);
+    const singleCardOverpayment = smallestCoveringCard ? smallestCoveringCard.value - amount : Infinity;
+    
+    // Strategy 3: Calculate overpayment if we use exact payment strategy
+    const exactPaymentOverpayment = exactPaymentTotal >= amount ? exactPaymentTotal - amount : Infinity;
+    
+    console.log(`Single card overpayment: $${singleCardOverpayment}`);
+    console.log(`Exact payment overpayment: $${exactPaymentOverpayment}`);
+    
+    // Choose the strategy: exact payment if possible, otherwise minimal overpayment
+    if (exactPaymentTotal >= amount && exactPaymentOverpayment === 0) {
+      // Use exact payment strategy (no overpayment)
+      console.log(`Using exact payment strategy (no overpayment)`);
       for (const card of exactPayment) {
         if (remainingAmount <= 0) break;
         
@@ -549,32 +571,57 @@ export class GameService {
         }
       }
     } else {
-      // If we can't make exact payment, use the smallest single card that covers the amount
-      console.log(`Using overpayment strategy`);
-      const smallestCoveringCard = moneyCards.find(card => card.value >= amount);
+      // Exact payment not possible, use minimal overpayment strategy
+      console.log(`Exact payment not possible, using minimal overpayment strategy`);
       
-      if (smallestCoveringCard) {
-        const cardIndex = fromPlayer.hand.findIndex(c => c.id === smallestCoveringCard.id);
-        if (cardIndex !== -1) {
-          const removedCard = fromPlayer.hand.splice(cardIndex, 1)[0];
-          console.log(`Removed card: ${removedCard.name} ($${removedCard.value}) - overpayment of $${removedCard.value - amount}`);
-          
-          toPlayer.hand.push(removedCard);
-          transferredCards.push(removedCard);
-          remainingAmount = 0; // Fully covered by this card
-          
-          console.log(`Remaining amount to transfer: $${remainingAmount}`);
+      // Find the combination of cards that results in minimal overpayment
+      let bestCombination: Card[] = [];
+      let bestOverpayment = Infinity;
+      
+      // Try all possible combinations of cards
+      const allMoneyCards = fromPlayer.hand.filter(card => card.type === 'money' && card.value > 0);
+      
+      // Generate all possible combinations (power set)
+      for (let i = 1; i <= allMoneyCards.length; i++) {
+        const combinations = this.getCombinations(allMoneyCards, i);
+        for (const combination of combinations) {
+          const totalValue = combination.reduce((sum: number, card: Card) => sum + card.value, 0);
+          if (totalValue >= amount) {
+            const overpayment = totalValue - amount;
+            if (overpayment < bestOverpayment) {
+              bestOverpayment = overpayment;
+              bestCombination = combination;
+            }
+          }
+        }
+      }
+      
+      if (bestCombination.length > 0) {
+        console.log(`Using combination: ${bestCombination.map((c: Card) => `$${c.value}`).join(' + ')} = $${bestCombination.reduce((sum: number, c: Card) => sum + c.value, 0)} (overpayment: $${bestOverpayment})`);
+        
+        for (const card of bestCombination) {
+          const cardIndex = fromPlayer.hand.findIndex(c => c.id === card.id);
+          if (cardIndex !== -1) {
+            const removedCard = fromPlayer.hand.splice(cardIndex, 1)[0];
+            console.log(`Removed card: ${removedCard.name} ($${removedCard.value})`);
+            
+            toPlayer.hand.push(removedCard);
+            transferredCards.push(removedCard);
+            remainingAmount -= removedCard.value;
+            
+            console.log(`Remaining amount to transfer: $${remainingAmount}`);
+          }
         }
       }
     }
     
-    // Update money totals
-    const actualTransferredAmount = amount - remainingAmount;
-    fromPlayer.money -= actualTransferredAmount;
-    toPlayer.money += actualTransferredAmount;
+    // Update money totals based on actual cards transferred
+    const actualTransferredValue = transferredCards.reduce((sum, card) => sum + card.value, 0);
+    fromPlayer.money -= actualTransferredValue;
+    toPlayer.money += actualTransferredValue;
     
     console.log(`=== Transfer complete ===`);
-    console.log(`Actual transferred amount: $${actualTransferredAmount}`);
+    console.log(`Actual transferred value: $${actualTransferredValue}`);
     console.log(`From player hand after:`, fromPlayer.hand.map(c => `${c.name} ($${c.value})`));
     console.log(`To player hand after:`, toPlayer.hand.map(c => `${c.name} ($${c.value})`));
     console.log(`From player money: ${fromPlayer.money}, money cards: ${fromPlayer.hand.filter(c => c.type === 'money').length}`);
