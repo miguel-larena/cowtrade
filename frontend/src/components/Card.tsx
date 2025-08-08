@@ -15,9 +15,20 @@ const CardComponent: React.FC<CardProps> = ({
   onClick, 
   selected = false, 
   disabled = false,
-  isOwnCard = true,
+  isOwnCard = true, // eslint-disable-line @typescript-eslint/no-unused-vars
   showValue = true
 }) => {
+  const getCardImage = (card: CardType) => {
+    if (card.type === 'money') {
+      // Use money card images based on value
+      return `/images/cards/${card.value}.png`;
+    } else {
+      // Use animal card images based on name (convert to lowercase and replace spaces with underscores)
+      const animalName = card.name.toLowerCase().replace(' ', '_');
+      return `/images/cards/${animalName}.png`;
+    }
+  };
+
   const getAnimalEmoji = (animalName: string) => {
     switch (animalName.toLowerCase()) {
       case 'shrimp': return '🦐';
@@ -33,118 +44,98 @@ const CardComponent: React.FC<CardProps> = ({
       default: return '🐠';
     }
   };
-  const cardStyle = {
-    border: selected ? '3px solid #4CAF50' : '2px solid #ccc',
-    borderRadius: '8px',
-    padding: 'clamp(6px, 1.5vw, 12px)',
-    margin: '2px',
+  const imageStyle = {
+    width: 'clamp(100px, 10vw, 140px)',
+    height: 'clamp(140px, 14vw, 196px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
-    backgroundColor: card.type === 'animal' ? '#f0f8ff' : '#fff8dc',
     opacity: disabled ? 0.6 : 1,
-    width: 'clamp(70px, 8vw, 120px)',
-    height: 'clamp(100px, 12vw, 160px)',
-    textAlign: 'center' as const,
+    border: selected ? '3px solid #4CAF50' : 'none',
+    borderRadius: '8px',
     transition: 'all 0.2s ease',
+    objectFit: 'contain' as const,
+  };
+
+  const fallbackStyle = {
+    width: 'clamp(100px, 10vw, 140px)',
+    height: 'clamp(140px, 14vw, 196px)',
+    cursor: disabled ? 'not-allowed' : 'pointer',
+    opacity: disabled ? 0.6 : 1,
+    border: selected ? '3px solid #4CAF50' : 'none',
+    borderRadius: '8px',
+    transition: 'all 0.2s ease',
+    backgroundColor: card.type === 'animal' ? '#f0f8ff' : '#fff8dc',
     display: 'flex',
     flexDirection: 'column' as const,
     justifyContent: 'center',
     alignItems: 'center',
+    textAlign: 'center' as const,
     boxSizing: 'border-box' as const,
+    outline: selected ? 'none' : '1px solid #ccc',
   };
 
-  return (
-    <div 
-      className="card"
-      style={cardStyle}
-      onClick={disabled ? undefined : onClick}
-    >
-      {showValue ? (
-        <>
-          {card.type === 'money' ? (
-            <div className="card-value" style={{ 
-              fontSize: 'clamp(14px, 2.5vw, 20px)', 
-              fontWeight: 'bold', 
-              color: '#333', 
-              textAlign: 'center',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%'
-            }}>
-              ${card.value}
-            </div>
-          ) : (
-            <>
-              <div className="card-name" style={{ 
-                fontWeight: 'bold', 
-                fontSize: 'clamp(10px, 1.8vw, 14px)', 
-                textAlign: 'center',
-                lineHeight: '1.2',
-                marginBottom: 'clamp(2px, 0.5vw, 4px)'
-              }}>
-                {card.name}
+  if (showValue) {
+    return (
+      <img 
+        className="card"
+        src={getCardImage(card)}
+        alt={card.type === 'money' ? `$${card.value} money card` : `${card.name} animal card (${card.value} points)`}
+        style={imageStyle}
+        onClick={disabled ? undefined : onClick}
+        onError={(e) => {
+          // Fallback to styled div if image fails to load
+          const target = e.target as HTMLImageElement;
+          const fallback = document.createElement('div');
+          fallback.className = 'card';
+          Object.assign(fallback.style, fallbackStyle);
+          
+          if (card.type === 'money') {
+            fallback.textContent = `$${card.value}`;
+            fallback.style.fontSize = 'clamp(14px, 2.5vw, 20px)';
+            fallback.style.fontWeight = 'bold';
+            fallback.style.color = '#333';
+          } else {
+            fallback.innerHTML = `
+              <div style="font-weight: bold; font-size: clamp(8px, 1.5vw, 12px); text-align: center; line-height: 1.1; margin-bottom: clamp(1px, 0.3vw, 2px);">
+                ${card.name}
               </div>
-              <div className="card-emoji" style={{ 
-                fontSize: 'clamp(18px, 3vw, 24px)', 
-                textAlign: 'center', 
-                margin: 'clamp(2px, 0.5vw, 4px) 0'
-              }}>
-                {getAnimalEmoji(card.name)}
+              <div style="font-size: clamp(14px, 2.5vw, 20px); text-align: center; margin: clamp(1px, 0.3vw, 2px) 0;">
+                ${getAnimalEmoji(card.name)}
               </div>
-              <div className="card-value" style={{ 
-                fontSize: 'clamp(12px, 2vw, 16px)', 
-                fontWeight: 'bold', 
-                color: '#333', 
-                textAlign: 'center'
-              }}>
-                {card.value}
+              <div style="font-size: clamp(10px, 1.8vw, 14px); font-weight: bold; color: #333; text-align: center;">
+                ${card.value}
               </div>
-            </>
-          )}
-        </>
-      ) : card.type === 'money' ? (
-        <div className="card-value" style={{ 
+            `;
+          }
+          
+          // Add click handler to fallback
+          if (!disabled && onClick) {
+            fallback.addEventListener('click', onClick);
+          }
+          
+          // Replace the img with the fallback div
+          target.parentNode?.replaceChild(fallback, target);
+        }}
+      />
+    );
+  } else {
+    // Facedown cards show question mark regardless of type
+    return (
+      <div 
+        className="card"
+        style={fallbackStyle}
+        onClick={disabled ? undefined : onClick}
+      >
+        <div style={{ 
           fontSize: 'clamp(14px, 2.5vw, 20px)', 
           fontWeight: 'bold', 
           color: '#666', 
-          textAlign: 'center',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          height: '100%'
+          textAlign: 'center'
         }}>
           ❓
         </div>
-      ) : (
-        <>
-          <div className="card-name" style={{ 
-            fontWeight: 'bold', 
-            fontSize: 'clamp(10px, 1.8vw, 14px)', 
-            textAlign: 'center',
-            lineHeight: '1.2',
-            marginBottom: 'clamp(2px, 0.5vw, 4px)'
-          }}>
-            {card.name}
-          </div>
-          <div className="card-emoji" style={{ 
-            fontSize: 'clamp(18px, 3vw, 24px)', 
-            textAlign: 'center', 
-            margin: 'clamp(2px, 0.5vw, 4px) 0'
-          }}>
-            {getAnimalEmoji(card.name)}
-          </div>
-          <div className="card-value" style={{ 
-            fontSize: 'clamp(12px, 2vw, 16px)', 
-            fontWeight: 'bold', 
-            color: '#333', 
-            textAlign: 'center'
-          }}>
-            {card.value}
-          </div>
-        </>
-      )}
-    </div>
-  );
+      </div>
+    );
+  }
 };
 
 export default CardComponent; 

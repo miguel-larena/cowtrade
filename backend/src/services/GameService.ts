@@ -257,30 +257,8 @@ export class GameService {
       throw new Error('Minimum bid is 10');
     }
 
-    // Check if player has enough money cards to pay the bid (excluding $0 bluff cards)
-    const moneyCards = player.hand.filter(card => card.type === 'money' && card.value > 0);
-    const totalMoneyCards = moneyCards.reduce((sum, card) => sum + card.value, 0);
-    const canAfford = totalMoneyCards >= amount;
-    
-    if (!canAfford) {
-      // Player is bluffing - disqualify them
-      game.disqualifiedPlayers.push(playerId);
-      
-      // Create bluff detection summary
-      game.auctionState = 'summary';
-      game.auctionSummary = {
-        type: 'bluff_detected',
-        message: `${player.name} was caught bluffing! They only have $${totalMoneyCards} in money cards but bid $${amount}. They are disqualified from this auction.`,
-        auctioneerName: game.players.find(p => p.id === game.auctioneer!)?.name || 'Unknown',
-        blufferName: player.name,
-        blufferMoney: totalMoneyCards,
-        animalName: game.auctionCard?.name,
-        bidAmount: amount
-      };
-      
-      game.updatedAt = new Date();
-      return game;
-    }
+    // Allow bluffing - don't check affordability here
+    // Bluff detection will happen during match bid phase when auctioneer tries to match
 
     // Valid bid - update auction state
     game.currentBid = amount;
@@ -321,9 +299,36 @@ export class GameService {
         game.auctionEndTime = Date.now() + (15 * 1000); // 15 seconds to decide
       }
     } else if (game.auctionState === 'match_bid_phase') {
-      // Match bid phase timed out - highest bidder wins
+      // Match bid phase timed out - check if current bidder was bluffing
       if (game.currentBidder && game.currentBid > 0) {
-        this.finalizeAuction(game, 'normal_win');
+        const currentBidder = game.players.find(p => p.id === game.currentBidder!);
+        if (!currentBidder) {
+          throw new Error('Current bidder not found');
+        }
+
+        // Check if current bidder can actually afford their bid
+        const bidderMoneyCards = currentBidder.hand.filter(card => card.type === 'money' && card.value > 0);
+        const bidderTotalMoney = bidderMoneyCards.reduce((sum, card) => sum + card.value, 0);
+        
+        if (bidderTotalMoney < game.currentBid) {
+          // Current bidder was bluffing - disqualify them
+          game.disqualifiedPlayers.push(game.currentBidder!);
+          
+          // Create bluff detection summary
+          game.auctionState = 'summary';
+          game.auctionSummary = {
+            type: 'bluff_detected',
+            message: `${currentBidder.name} was caught bluffing! They only have $${bidderTotalMoney} in money cards but bid $${game.currentBid}. They are disqualified from this auction.`,
+            auctioneerName: game.players.find(p => p.id === game.auctioneer!)?.name || 'Unknown',
+            blufferName: currentBidder.name,
+            blufferMoney: bidderTotalMoney,
+            animalName: game.auctionCard?.name,
+            bidAmount: game.currentBid
+          };
+        } else {
+          // Bidder can afford - normal win
+          this.finalizeAuction(game, 'normal_win');
+        }
       } else {
         // This shouldn't happen, but handle it gracefully
         game.auctionState = 'summary';
@@ -374,7 +379,40 @@ export class GameService {
     const totalMoneyCards = moneyCards.reduce((sum, card) => sum + card.value, 0);
     
     if (totalMoneyCards < game.currentBid) {
-      throw new Error('Not enough money cards to match the bid');
+      // Auctioneer can't afford to match - check if current bidder was bluffing
+      const currentBidder = game.players.find(p => p.id === game.currentBidder!);
+      if (!currentBidder) {
+        throw new Error('Current bidder not found');
+      }
+
+      // Check if current bidder can actually afford their bid
+      const bidderMoneyCards = currentBidder.hand.filter(card => card.type === 'money' && card.value > 0);
+      const bidderTotalMoney = bidderMoneyCards.reduce((sum, card) => sum + card.value, 0);
+      
+      if (bidderTotalMoney < game.currentBid) {
+        // Current bidder was bluffing - disqualify them
+        game.disqualifiedPlayers.push(game.currentBidder!);
+        
+        // Create bluff detection summary
+        game.auctionState = 'summary';
+        game.auctionSummary = {
+          type: 'bluff_detected',
+          message: `${currentBidder.name} was caught bluffing! They only have $${bidderTotalMoney} in money cards but bid $${game.currentBid}. They are disqualified from this auction.`,
+          auctioneerName: auctioneer.name,
+          blufferName: currentBidder.name,
+          blufferMoney: bidderTotalMoney,
+          animalName: game.auctionCard?.name,
+          bidAmount: game.currentBid
+        };
+        
+        game.updatedAt = new Date();
+        return game;
+      } else {
+        // Auctioneer can't afford but bidder can - normal win
+        this.finalizeAuction(game, 'normal_win');
+        game.updatedAt = new Date();
+        return game;
+      }
     }
 
     // Auctioneer matches the bid

@@ -9,6 +9,14 @@ interface PlayerHandProps {
   onCardClick?: (card: Card) => void;
   selectable?: boolean;
   selectedCards?: Card[];
+  showBluffInfo?: boolean;
+  bluffInfo?: {
+    blufferName: string;
+    blufferMoney: number;
+    bidAmount: number;
+    animalName: string;
+  };
+  currentAuctioneer?: string | null;
 }
 
 const PlayerHand: React.FC<PlayerHandProps> = ({ 
@@ -17,7 +25,10 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
   isCurrentTurn,
   onCardClick, 
   selectable = false,
-  selectedCards = []
+  selectedCards = [],
+  showBluffInfo = false,
+  bluffInfo,
+  currentAuctioneer
 }) => {
   // Debug logging for Tuna bonus cards
   React.useEffect(() => {
@@ -43,13 +54,13 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
     <div style={{ 
       border: isCurrentTurn ? '3px solid #28a745' : '2px solid #ddd', 
       borderRadius: '8px', 
-      padding: '12px',
+      padding: 'clamp(4px, 1vw, 8px)',
       margin: '4px',
       backgroundColor: isCurrentTurn ? '#e8f5e8' : '#f9f9f9',
       boxShadow: isCurrentTurn ? '0 4px 8px rgba(40,167,69,0.2)' : '0 2px 4px rgba(0,0,0,0.1)'
     }}>
       <h3 style={{ 
-        margin: '0 0 8px 0', 
+        margin: '0 0 clamp(4px, 1vw, 6px) 0', 
         color: '#333',
         fontSize: 'clamp(14px, 3vw, 18px)',
         display: 'flex',
@@ -81,11 +92,13 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
         )}
       </h3>
       <div style={{ 
-        display: 'flex', 
-        flexWrap: 'wrap', 
-        gap: 'clamp(4px, 1vw, 8px)',
-        minHeight: 'clamp(100px, 15vw, 160px)',
-        alignItems: 'flex-start'
+        display: 'grid', 
+        gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(100px, 10vw, 140px), 1fr))',
+        columnGap: 'clamp(1px, 0.3vw, 3px)',
+        rowGap: 'clamp(1px, 0.3vw, 3px)',
+        minHeight: 'clamp(140px, 14vw, 196px)',
+        alignItems: 'start',
+        justifyItems: 'center'
       }}>
         {player.hand.length === 0 ? (
           <div style={{ 
@@ -122,6 +135,26 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
           fontWeight: 'bold'
         }}>
           Money: ${player.money}
+        </div>
+      )}
+      
+      {/* Bluff Information - Only show when current player is still auctioneer */}
+      {showBluffInfo && bluffInfo && player.name === bluffInfo.blufferName && currentAuctioneer && (
+        <div style={{
+          marginTop: '8px',
+          padding: '8px',
+          backgroundColor: '#fff3cd',
+          border: '2px solid #ffc107',
+          borderRadius: '4px',
+          fontSize: 'clamp(11px, 2vw, 13px)',
+          color: '#856404',
+          fontWeight: 'bold'
+        }}>
+          🚫 BLUFF DETECTED!
+          <br />
+          Bid: ${bluffInfo.bidAmount} | Has: ${bluffInfo.blufferMoney}
+          <br />
+          Disqualified from auction
         </div>
       )}
     </div>

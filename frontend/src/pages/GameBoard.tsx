@@ -133,7 +133,52 @@ const GameBoard: React.FC<GameBoardProps> = ({
         gap: '24px',
         alignItems: 'start'
       }}>
-        {/* Main Game Area */}
+        {/* Current Player's Hand - Top */}
+        {currentPlayerId && (
+          <div style={{
+            width: '100%',
+            maxWidth: '100%'
+          }}>
+            <h2 style={{ 
+              margin: '0 0 16px 0', 
+              color: '#2c3e50',
+              fontSize: 'clamp(18px, 4vw, 24px)',
+              fontWeight: '600'
+            }}>
+              Your Hand
+            </h2>
+            <div style={{ 
+              display: 'grid', 
+              gap: '16px',
+              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+            }}>
+                          {gameState.players
+              .filter(player => player.id === currentPlayerId)
+              .map((player) => (
+                <PlayerHand
+                  key={player.id}
+                  player={player}
+                  isCurrentPlayer={true}
+                  isCurrentTurn={gameState.currentTurn === player.id}
+                  showBluffInfo={gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected'}
+                  bluffInfo={gameState.auctionSummary?.type === 'bluff_detected' && 
+                    gameState.auctionSummary.blufferName && 
+                    gameState.auctionSummary.blufferMoney !== undefined && 
+                    gameState.auctionSummary.bidAmount !== undefined && 
+                    gameState.auctionSummary.animalName ? {
+                    blufferName: gameState.auctionSummary.blufferName,
+                    blufferMoney: gameState.auctionSummary.blufferMoney,
+                    bidAmount: gameState.auctionSummary.bidAmount,
+                    animalName: gameState.auctionSummary.animalName
+                  } : undefined}
+                  currentAuctioneer={gameState.auctioneer}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+
+        {/* Main Game Area - Auction/Trade Panels */}
         <div style={{
           width: '100%',
           maxWidth: '100%'
@@ -145,34 +190,48 @@ const GameBoard: React.FC<GameBoardProps> = ({
           }}>
             {renderPhaseContent()}
           </div>
+        </div>
 
-          {/* Player Hands */}
-          <div style={{ 
-            width: '100%',
-            marginTop: '24px' 
+        {/* Other Players' Hands - Bottom */}
+        <div style={{
+          width: '100%',
+          maxWidth: '100%'
+        }}>
+          <h2 style={{ 
+            margin: '0 0 16px 0', 
+            color: '#2c3e50',
+            fontSize: 'clamp(18px, 4vw, 24px)',
+            fontWeight: '600'
           }}>
-            <h2 style={{ 
-              margin: '0 0 16px 0', 
-              color: '#2c3e50',
-              fontSize: 'clamp(18px, 4vw, 24px)',
-              fontWeight: '600'
-            }}>
-              Player Hands
-            </h2>
-            <div style={{ 
-              display: 'grid', 
-              gap: '16px',
-              gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
-            }}>
-              {gameState.players.map((player) => (
+            Other Players
+          </h2>
+          <div style={{ 
+            display: 'grid', 
+            gap: '16px',
+            gridTemplateColumns: 'repeat(auto-fit, minmax(300px, 1fr))'
+          }}>
+            {gameState.players
+              .filter(player => player.id !== currentPlayerId)
+              .map((player) => (
                 <PlayerHand
                   key={player.id}
                   player={player}
-                  isCurrentPlayer={player.id === currentPlayerId}
+                  isCurrentPlayer={false}
                   isCurrentTurn={gameState.currentTurn === player.id}
+                  showBluffInfo={gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected'}
+                  bluffInfo={gameState.auctionSummary?.type === 'bluff_detected' && 
+                    gameState.auctionSummary.blufferName && 
+                    gameState.auctionSummary.blufferMoney !== undefined && 
+                    gameState.auctionSummary.bidAmount !== undefined && 
+                    gameState.auctionSummary.animalName ? {
+                    blufferName: gameState.auctionSummary.blufferName,
+                    blufferMoney: gameState.auctionSummary.blufferMoney,
+                    bidAmount: gameState.auctionSummary.bidAmount,
+                    animalName: gameState.auctionSummary.animalName
+                  } : undefined}
+                  currentAuctioneer={gameState.auctioneer}
                 />
               ))}
-            </div>
           </div>
         </div>
 

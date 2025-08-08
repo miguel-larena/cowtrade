@@ -10,7 +10,7 @@ interface AuctionPanelProps {
   onEndAuction: () => void;
   onMatchBid: () => void;
   onClearAuctionSummary: () => void;
-  onRestartAuctionAfterBluff: () => void;
+  onRestartAuctionAfterBluff: () => Promise<void>;
 }
 
 const AuctionPanel: React.FC<AuctionPanelProps> = ({
@@ -60,7 +60,9 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
           if (prev <= 1) {
             // Only the auctioneer should restart the auction
             if (gameState.auctioneer === currentPlayerId) {
-              onRestartAuctionAfterBluff();
+              onRestartAuctionAfterBluff().catch(error => {
+                console.error('Failed to restart auction after bluff:', error);
+              });
             }
             return 0;
           }
@@ -463,21 +465,21 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         </div>
       )}
 
-      {/* Auction Summary */}
-      {gameState.auctionState === 'summary' && gameState.auctionSummary && (
+      {/* Auction Summary - Only show non-bluff summaries */}
+      {gameState.auctionState === 'summary' && gameState.auctionSummary && gameState.auctionSummary.type !== 'bluff_detected' && (
         <div style={{
           marginTop: '20px',
           padding: '20px',
-          backgroundColor: gameState.auctionSummary.type === 'bluff_detected' ? '#fff3cd' : '#e8f5e8',
+          backgroundColor: '#e8f5e8',
           borderRadius: '8px',
-          border: `2px solid ${gameState.auctionSummary.type === 'bluff_detected' ? '#ffc107' : '#4CAF50'}`,
+          border: '2px solid #4CAF50',
           textAlign: 'center'
         }}>
           <h3 style={{ 
             margin: '0 0 16px 0', 
-            color: gameState.auctionSummary.type === 'bluff_detected' ? '#856404' : '#2E7D32'
+            color: '#2E7D32'
           }}>
-            {gameState.auctionSummary.type === 'bluff_detected' ? '🚫 Bluff Detected' : '🎯 Auction Complete'}
+            🎯 Auction Complete
           </h3>
           <div style={{
             fontSize: '16px',
@@ -488,32 +490,48 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
           }}>
             {gameState.auctionSummary.message}
           </div>
-          {gameState.auctionSummary.type === 'bluff_detected' ? (
-            <div style={{
-              fontSize: '18px',
-              fontWeight: 'bold',
-              color: '#856404',
-              marginBottom: '16px'
-            }}>
-              Restarting in {bluffRestartTimer} seconds...
-            </div>
-          ) : (
-            <button
-              onClick={onClearAuctionSummary}
-              style={{
-                padding: '12px 24px',
-                backgroundColor: '#4CAF50',
-                color: 'white',
-                border: 'none',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '16px',
-                fontWeight: 'bold'
-              }}
-            >
-              Continue
-            </button>
-          )}
+          <button
+            onClick={onClearAuctionSummary}
+            style={{
+              padding: '12px 24px',
+              backgroundColor: '#4CAF50',
+              color: 'white',
+              border: 'none',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '16px',
+              fontWeight: 'bold'
+            }}
+          >
+            Continue
+          </button>
+        </div>
+      )}
+
+      {/* Bluff Restart Timer - Only show when bluff detected */}
+      {gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected' && (
+        <div style={{
+          marginTop: '20px',
+          padding: '20px',
+          backgroundColor: '#fff3cd',
+          borderRadius: '8px',
+          border: '2px solid #ffc107',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ 
+            margin: '0 0 16px 0', 
+            color: '#856404'
+          }}>
+            🚫 Bluff Detected
+          </h3>
+          <div style={{
+            fontSize: '18px',
+            fontWeight: 'bold',
+            color: '#856404',
+            marginBottom: '16px'
+          }}>
+            Restarting auction in {bluffRestartTimer} seconds...
+          </div>
         </div>
       )}
 
