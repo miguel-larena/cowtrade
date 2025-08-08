@@ -93,10 +93,10 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
       </h3>
       <div style={{ 
         display: 'grid', 
-        gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(100px, 10vw, 140px), 1fr))',
-        columnGap: 'clamp(1px, 0.3vw, 3px)',
-        rowGap: 'clamp(1px, 0.3vw, 3px)',
-        minHeight: 'clamp(140px, 14vw, 196px)',
+        gridTemplateColumns: 'repeat(auto-fill, minmax(clamp(120px, 12vw, 160px), 1fr))',
+        columnGap: 'clamp(2px, 0.5vw, 4px)',
+        rowGap: 'clamp(2px, 0.5vw, 4px)',
+        minHeight: 'clamp(168px, 16.8vw, 224px)',
         alignItems: 'start',
         justifyItems: 'center'
       }}>

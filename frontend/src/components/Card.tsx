@@ -45,8 +45,8 @@ const CardComponent: React.FC<CardProps> = ({
     }
   };
   const imageStyle = {
-    width: 'clamp(100px, 10vw, 140px)',
-    height: 'clamp(140px, 14vw, 196px)',
+    width: 'clamp(120px, 12vw, 160px)',
+    height: 'clamp(168px, 16.8vw, 224px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
     border: selected ? '3px solid #4CAF50' : 'none',
@@ -56,8 +56,8 @@ const CardComponent: React.FC<CardProps> = ({
   };
 
   const fallbackStyle = {
-    width: 'clamp(100px, 10vw, 140px)',
-    height: 'clamp(140px, 14vw, 196px)',
+    width: 'clamp(120px, 12vw, 160px)',
+    height: 'clamp(168px, 16.8vw, 224px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
     border: selected ? '3px solid #4CAF50' : 'none',
@@ -118,22 +118,35 @@ const CardComponent: React.FC<CardProps> = ({
       />
     );
   } else {
-    // Facedown cards show question mark regardless of type
+    // Facedown cards show back image with question mark fallback
     return (
-      <div 
+      <img 
         className="card"
-        style={fallbackStyle}
+        src="/images/cards/back.png"
+        alt="Face-down card"
+        style={imageStyle}
         onClick={disabled ? undefined : onClick}
-      >
-        <div style={{ 
-          fontSize: 'clamp(14px, 2.5vw, 20px)', 
-          fontWeight: 'bold', 
-          color: '#666', 
-          textAlign: 'center'
-        }}>
-          ❓
-        </div>
-      </div>
+        onError={(e) => {
+          // Fallback to question mark if back image fails to load
+          const target = e.target as HTMLImageElement;
+          const fallback = document.createElement('div');
+          fallback.className = 'card';
+          Object.assign(fallback.style, fallbackStyle);
+          
+          const questionMark = document.createElement('div');
+          questionMark.textContent = '❓';
+          questionMark.style.cssText = 'font-size: clamp(14px, 2.5vw, 20px); font-weight: bold; color: #666; text-align: center;';
+          fallback.appendChild(questionMark);
+          
+          // Add click handler to fallback
+          if (!disabled && onClick) {
+            fallback.addEventListener('click', onClick);
+          }
+          
+          // Replace the img with the fallback div
+          target.parentNode?.replaceChild(fallback, target);
+        }}
+      />
     );
   }
 };
