@@ -19,6 +19,7 @@ export declare class GameService {
     private getCombinations;
     private transferMoneyCards;
     private moveToNextTurn;
+    private drawAuctionCard;
     initiateTrade(gameId: string, initiatorId: string, partnerId: string): Promise<GameState>;
     makeTradeOffer(gameId: string, playerId: string, moneyCards: string[], animalCards: string[]): Promise<GameState>;
     executeTrade(gameId: string): Promise<GameState>;

@@ -32,6 +32,14 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onMakeTradeOffer,
   onExecuteTrade
 }) => {
+  const [showTradeInterface, setShowTradeInterface] = React.useState(false);
+
+  // Only reset trade interface when trade is actually completed
+  React.useEffect(() => {
+    if (gameState.tradeState === 'none' && showTradeInterface) {
+      setShowTradeInterface(false);
+    }
+  }, [gameState.tradeState]); // Removed showTradeInterface from dependencies
 
   const renderPhaseContent = () => {
     switch (gameState.currentPhase) {
@@ -54,18 +62,202 @@ const GameBoard: React.FC<GameBoardProps> = ({
         );
       
       case 'auction':
+        // If player wants to trade, show TradingPanel
+        if (showTradeInterface) {
+          return (
+            <div>
+              <div style={{
+                padding: '16px',
+                backgroundColor: '#fff3cd',
+                borderRadius: '8px',
+                border: '2px solid #ffc107',
+                marginBottom: '20px',
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center'
+              }}>
+                <h3 style={{ margin: '0', color: '#856404' }}>
+                  🤝 Trade Mode - Select a trading partner
+                </h3>
+                <button
+                  onClick={() => setShowTradeInterface(false)}
+                  style={{
+                    padding: '8px 16px',
+                    backgroundColor: '#ffc107',
+                    color: 'white',
+                    border: 'none',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '14px'
+                  }}
+                >
+                  ← Back to Actions
+                </button>
+              </div>
+              <TradingPanel
+                gameState={gameState}
+                currentPlayerId={currentPlayerId || ''}
+                onInitiateTrade={onInitiateTrade}
+                onMakeTradeOffer={onMakeTradeOffer}
+                onExecuteTrade={onExecuteTrade}
+              />
+            </div>
+          );
+        }
+
         return (
           <div>
-            <AuctionPanel
-              gameState={gameState}
-              currentPlayerId={currentPlayerId || ''}
-              onStartAuction={onStartAuction}
-              onPlaceBid={onPlaceBid}
-              onEndAuction={onEndAuction}
-              onMatchBid={onMatchBid}
-              onClearAuctionSummary={onClearAuctionSummary}
-              onRestartAuctionAfterBluff={onRestartAuctionAfterBluff}
-            />
+            {/* Show choice between Auction and Trade when it's the player's turn */}
+            {currentPlayerId && gameState.currentTurn === currentPlayerId ? (
+              <div style={{
+                padding: '20px',
+                backgroundColor: '#f8f9fa',
+                borderRadius: '12px',
+                border: '2px solid #e9ecef',
+                marginBottom: '20px'
+              }}>
+                <h3 style={{ 
+                  margin: '0 0 16px 0', 
+                  color: '#2c3e50',
+                  fontSize: '20px',
+                  textAlign: 'center'
+                }}>
+                  🎯 Your Turn - Choose Your Action
+                </h3>
+                
+                <div style={{
+                  display: 'grid',
+                  gridTemplateColumns: '1fr 1fr',
+                  gap: '20px',
+                  maxWidth: '600px',
+                  margin: '0 auto'
+                }}>
+                  {/* Auction Option */}
+                  <div style={{
+                    padding: '20px',
+                    backgroundColor: '#e8f5e8',
+                    borderRadius: '8px',
+                    border: '2px solid #4CAF50',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onClick={() => {
+                    // Start auction with current player as auctioneer
+                    onStartAuction(currentPlayerId);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  >
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏷️</div>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>Start Auction</h4>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                      {gameState.auctionCard ? 
+                        `Auction the ${gameState.auctionCard.name} card` : 
+                        'Draw and auction a new card'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Trade Option */}
+                  <div style={{
+                    padding: '20px',
+                    backgroundColor: '#fff3cd',
+                    borderRadius: '8px',
+                    border: '2px solid #ffc107',
+                    textAlign: 'center',
+                    cursor: 'pointer',
+                    transition: 'all 0.2s ease'
+                  }}
+                  onClick={() => {
+                    // Switch to trade interface - this is a commitment
+                    setShowTradeInterface(true);
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.transform = 'translateY(-2px)';
+                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 193, 7, 0.3)';
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.transform = 'translateY(0)';
+                    e.currentTarget.style.boxShadow = 'none';
+                  }}
+                  >
+                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>🤝</div>
+                    <h4 style={{ margin: '0 0 8px 0', color: '#856404' }}>Initiate Trade</h4>
+                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+                      Trade animal cards with another player
+                    </p>
+
+                  </div>
+                </div>
+              </div>
+            ) : null}
+
+            {/* Show Auction Panel if auction is in progress */}
+            {gameState.auctionState !== 'none' ? (
+              <AuctionPanel
+                gameState={gameState}
+                currentPlayerId={currentPlayerId || ''}
+                onStartAuction={onStartAuction}
+                onPlaceBid={onPlaceBid}
+                onEndAuction={onEndAuction}
+                onMatchBid={onMatchBid}
+                onClearAuctionSummary={onClearAuctionSummary}
+                onRestartAuctionAfterBluff={onRestartAuctionAfterBluff}
+              />
+            ) : (
+              /* Show current auction card if available but no auction in progress */
+              gameState.auctionCard && (
+                <div style={{
+                  padding: '20px',
+                  backgroundColor: '#e3f2fd',
+                  borderRadius: '8px',
+                  border: '2px solid #2196F3',
+                  textAlign: 'center',
+                  marginBottom: '20px'
+                }}>
+                  <h4 style={{ margin: '0 0 12px 0', color: '#1976D2' }}>
+                    Current Auction Card
+                  </h4>
+                  <div style={{
+                    display: 'flex',
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    gap: '16px'
+                  }}>
+                    <div style={{
+                      width: '80px',
+                      height: '120px',
+                      backgroundColor: '#fff',
+                      border: '2px solid #2196F3',
+                      borderRadius: '8px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      fontSize: '16px',
+                      fontWeight: 'bold',
+                      color: '#2196F3'
+                    }}>
+                      {gameState.auctionCard.name}
+                    </div>
+                    <div style={{ textAlign: 'left' }}>
+                      <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                        <strong>Type:</strong> {gameState.auctionCard.type}
+                      </p>
+                      <p style={{ margin: '4px 0', fontSize: '14px' }}>
+                        <strong>Value:</strong> ${gameState.auctionCard.value}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              )
+            )}
           </div>
         );
       

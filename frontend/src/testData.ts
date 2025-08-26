@@ -163,6 +163,7 @@ export const testPlayers: Player[] = [
 
 // Test game state
 export const testGameState: GameState = {
+  id: 'test-game-1',
   players: testPlayers,
   // All animal cards are in the deck, plus money cards
   deck: [
@@ -186,5 +187,9 @@ export const testGameState: GameState = {
   tradePartner: null,
   tradeOffers: [],
   tradeConfirmed: false,
-  selectedAnimalCards: []
+  selectedAnimalCards: [],
+  
+  // Metadata
+  createdAt: new Date(),
+  updatedAt: new Date()
 };

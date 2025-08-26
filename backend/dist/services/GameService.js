@@ -569,13 +569,50 @@ class GameService {
         const nextPlayerIndex = (currentPlayerIndex + 1) % game.players.length;
         game.currentTurn = game.players[nextPlayerIndex].id;
     }
-    // Trading methods (to be implemented later)
+    drawAuctionCard(game) {
+        if (game.deck.length === 0) {
+            return null; // No more cards to draw
+        }
+        const drawnCard = game.deck.pop();
+        console.log(`Drew auction card: ${drawnCard.name} ($${drawnCard.value})`);
+        return drawnCard;
+    }
+    // Trading methods
     async initiateTrade(gameId, initiatorId, partnerId) {
         const game = this.games.get(gameId);
         if (!game) {
             throw new Error('Game not found');
         }
-        // TODO: Implement trade initiation logic
+        // Validate that it's the initiator's turn
+        if (game.currentTurn !== initiatorId) {
+            throw new Error('Not your turn to initiate trade');
+        }
+        // Validate that both players exist
+        const initiator = game.players.find(p => p.id === initiatorId);
+        const partner = game.players.find(p => p.id === partnerId);
+        if (!initiator || !partner) {
+            throw new Error('Player not found');
+        }
+        // Check if both players have animal cards
+        const initiatorAnimalCards = initiator.hand.filter(card => card.type === 'animal');
+        const partnerAnimalCards = partner.hand.filter(card => card.type === 'animal');
+        if (initiatorAnimalCards.length === 0 || partnerAnimalCards.length === 0) {
+            throw new Error('Both players must have animal cards to trade');
+        }
+        // Check if they have any animal types in common
+        const initiatorAnimalTypes = new Set(initiatorAnimalCards.map(card => card.name));
+        const partnerAnimalTypes = new Set(partnerAnimalCards.map(card => card.name));
+        const commonAnimalTypes = [...initiatorAnimalTypes].filter(type => partnerAnimalTypes.has(type));
+        if (commonAnimalTypes.length === 0) {
+            throw new Error('Players must have at least one animal type in common to trade');
+        }
+        // Initialize trade state
+        game.tradeState = 'challenger_selecting_cards';
+        game.tradeInitiator = initiatorId;
+        game.tradePartner = partnerId;
+        game.selectedAnimalCards = [];
+        game.tradeOffers = [];
+        game.tradeConfirmed = false;
         game.updatedAt = new Date();
         return game;
     }
@@ -584,7 +621,120 @@ class GameService {
         if (!game) {
             throw new Error('Game not found');
         }
-        // TODO: Implement trade offer logic
+        // Validate that trade is in progress
+        if (game.tradeState === 'none') {
+            throw new Error('No trade in progress');
+        }
+        // Validate that the player is part of the trade
+        if (playerId !== game.tradeInitiator && playerId !== game.tradePartner) {
+            throw new Error('You are not part of this trade');
+        }
+        const player = game.players.find(p => p.id === playerId);
+        if (!player) {
+            throw new Error('Player not found');
+        }
+        // Handle animal card selection (challenger's turn)
+        if (game.tradeState === 'challenger_selecting_cards' && playerId === game.tradeInitiator) {
+            if (animalCards.length === 0) {
+                throw new Error('Must select at least one animal card');
+            }
+            // Validate that all selected cards are animal cards and belong to the player
+            const selectedAnimalCards = player.hand.filter(card => animalCards.includes(card.id) && card.type === 'animal');
+            if (selectedAnimalCards.length !== animalCards.length) {
+                throw new Error('Invalid animal card selection');
+            }
+            // Check that all selected cards are of the same type
+            const animalTypes = new Set(selectedAnimalCards.map(card => card.name));
+            if (animalTypes.size > 1) {
+                throw new Error('All selected animal cards must be of the same type');
+            }
+            // Check that the partner also has this animal type
+            const partner = game.players.find(p => p.id === game.tradePartner);
+            if (partner) {
+                const partnerHasType = partner.hand.some(card => card.type === 'animal' && animalTypes.has(card.name));
+                if (!partnerHasType) {
+                    throw new Error('Partner does not have the selected animal type');
+                }
+            }
+            // Store selected animal cards and move to bidding phase
+            game.selectedAnimalCards = animalCards;
+            game.tradeState = 'challenger_bidding';
+        }
+        else if (game.tradeState === 'challenger_bidding' && playerId === game.tradeInitiator) {
+            // Challenger is making money bid
+            if (moneyCards.length === 0) {
+                throw new Error('Must select at least one money card');
+            }
+            // Validate that all selected cards are money cards and belong to the player
+            const selectedMoneyCards = player.hand.filter(card => moneyCards.includes(card.id) && card.type === 'money');
+            if (selectedMoneyCards.length !== moneyCards.length) {
+                throw new Error('Invalid money card selection');
+            }
+            // Create or update trade offer
+            const existingOfferIndex = game.tradeOffers.findIndex(offer => offer.playerId === playerId);
+            const totalValue = selectedMoneyCards.reduce((sum, card) => sum + card.value, 0);
+            if (existingOfferIndex >= 0) {
+                game.tradeOffers[existingOfferIndex] = {
+                    playerId,
+                    animalCards: game.selectedAnimalCards,
+                    moneyCards,
+                    totalValue
+                };
+            }
+            else {
+                game.tradeOffers.push({
+                    playerId,
+                    animalCards: game.selectedAnimalCards,
+                    moneyCards,
+                    totalValue
+                });
+            }
+            // Move to challenged player's turn
+            game.tradeState = 'challenged_bidding';
+        }
+        else if (game.tradeState === 'challenged_bidding' && playerId === game.tradePartner) {
+            // Challenged player is making money bid
+            if (moneyCards.length === 0) {
+                throw new Error('Must select at least one money card');
+            }
+            // Validate that all selected cards are money cards and belong to the player
+            const selectedMoneyCards = player.hand.filter(card => moneyCards.includes(card.id) && card.type === 'money');
+            if (selectedMoneyCards.length !== moneyCards.length) {
+                throw new Error('Invalid money card selection');
+            }
+            // Create or update trade offer
+            const existingOfferIndex = game.tradeOffers.findIndex(offer => offer.playerId === playerId);
+            const totalValue = selectedMoneyCards.reduce((sum, card) => sum + card.value, 0);
+            if (existingOfferIndex >= 0) {
+                game.tradeOffers[existingOfferIndex] = {
+                    playerId,
+                    animalCards: game.selectedAnimalCards,
+                    moneyCards,
+                    totalValue
+                };
+            }
+            else {
+                game.tradeOffers.push({
+                    playerId,
+                    animalCards: game.selectedAnimalCards,
+                    moneyCards,
+                    totalValue
+                });
+            }
+            // Both players have bid, determine winner
+            const challengerOffer = game.tradeOffers.find(offer => offer.playerId === game.tradeInitiator);
+            const challengedOffer = game.tradeOffers.find(offer => offer.playerId === game.tradePartner);
+            if (challengerOffer && challengedOffer) {
+                if (challengerOffer.totalValue === challengedOffer.totalValue) {
+                    // Tie - restart trade
+                    game.tradeState = 'trade_tie_summary';
+                }
+                else {
+                    // Trade complete - determine winner
+                    game.tradeState = 'trade_complete';
+                }
+            }
+        }
         game.updatedAt = new Date();
         return game;
     }
@@ -593,7 +743,91 @@ class GameService {
         if (!game) {
             throw new Error('Game not found');
         }
-        // TODO: Implement trade execution logic
+        // If trade is complete, execute the actual card exchange
+        if (game.tradeState === 'trade_complete') {
+            const challengerOffer = game.tradeOffers.find(offer => offer.playerId === game.tradeInitiator);
+            const challengedOffer = game.tradeOffers.find(offer => offer.playerId === game.tradePartner);
+            if (challengerOffer && challengedOffer) {
+                const challenger = game.players.find(p => p.id === game.tradeInitiator);
+                const challenged = game.players.find(p => p.id === game.tradePartner);
+                if (challenger && challenged) {
+                    // Determine winner (higher bid wins)
+                    const winner = challengerOffer.totalValue > challengedOffer.totalValue ? challenger : challenged;
+                    const loser = winner.id === challenger.id ? challenged : challenger;
+                    const winnerOffer = winner.id === challenger.id ? challengerOffer : challengedOffer;
+                    const loserOffer = winner.id === challenger.id ? challengedOffer : challengerOffer;
+                    // Transfer animal cards to winner
+                    const animalCardsToTransfer = [];
+                    game.selectedAnimalCards.forEach(cardId => {
+                        const card = challenger.hand.find(c => c.id === cardId);
+                        if (card) {
+                            // Remove from challenger's hand
+                            const cardIndex = challenger.hand.findIndex(c => c.id === cardId);
+                            if (cardIndex !== -1) {
+                                const removedCard = challenger.hand.splice(cardIndex, 1)[0];
+                                animalCardsToTransfer.push(removedCard);
+                            }
+                        }
+                    });
+                    // Add animal cards to winner's hand
+                    winner.hand.push(...animalCardsToTransfer);
+                    // Exchange money cards between players
+                    const challengerMoneyCards = challenger.hand.filter(card => challengerOffer.moneyCards.includes(card.id));
+                    const challengedMoneyCards = challenged.hand.filter(card => challengedOffer.moneyCards.includes(card.id));
+                    // Remove money cards from both players
+                    challengerOffer.moneyCards.forEach(cardId => {
+                        const cardIndex = challenger.hand.findIndex(c => c.id === cardId);
+                        if (cardIndex !== -1) {
+                            challenger.hand.splice(cardIndex, 1);
+                        }
+                    });
+                    challengedOffer.moneyCards.forEach(cardId => {
+                        const cardIndex = challenged.hand.findIndex(c => c.id === cardId);
+                        if (cardIndex !== -1) {
+                            challenged.hand.splice(cardIndex, 1);
+                        }
+                    });
+                    // Exchange money cards
+                    challenger.hand.push(...challengedMoneyCards);
+                    challenged.hand.push(...challengerMoneyCards);
+                    // Update money totals
+                    challenger.money = challenger.hand
+                        .filter(card => card.type === 'money')
+                        .reduce((sum, card) => sum + card.value, 0);
+                    challenged.money = challenged.hand
+                        .filter(card => card.type === 'money')
+                        .reduce((sum, card) => sum + card.value, 0);
+                }
+            }
+        }
+        // Reset trade state and move to next turn
+        game.tradeState = 'none';
+        game.tradeInitiator = null;
+        game.tradePartner = null;
+        game.selectedAnimalCards = [];
+        game.tradeOffers = [];
+        game.tradeConfirmed = false;
+        // Move to next player's turn
+        this.moveToNextTurn(game);
+        // Start new auction phase
+        game.currentPhase = 'auction';
+        game.auctionState = 'none';
+        game.auctionCard = undefined;
+        game.currentBid = 0;
+        game.currentBidder = null;
+        game.auctioneer = null;
+        game.auctionEndTime = undefined;
+        game.disqualifiedPlayers = [];
+        game.auctionSummary = undefined;
+        // Draw a new auction card
+        const newAuctionCard = this.drawAuctionCard(game);
+        if (newAuctionCard) {
+            game.auctionCard = newAuctionCard;
+        }
+        else {
+            // No more cards in deck, game should end
+            game.currentPhase = 'end';
+        }
         game.updatedAt = new Date();
         return game;
     }

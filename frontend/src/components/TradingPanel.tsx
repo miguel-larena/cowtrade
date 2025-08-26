@@ -5,30 +5,21 @@ import CardComponent from './Card';
 interface TradingPanelProps {
   gameState: GameState;
   currentPlayerId: string;
-  onSelectTradePartner: (partnerId: string) => void;
-  onSelectAnimalCardsForTrade: (animalCards: string[]) => void;
-  onMakeTradeOffer: (playerId: string, moneyCards: string[]) => void;
-  onConfirmTrade: (playerId: string) => void;
-  onExecuteTrade: () => void;
-  onCancelTrade: () => void;
-  onInitiateTrade: (playerId: string, partnerId?: string) => void;
-  onRestartTradeAfterTie: () => void;
+  onInitiateTrade: (initiatorId: string, partnerId: string) => Promise<void>;
+  onMakeTradeOffer: (playerId: string, moneyCards: string[], animalCards: string[]) => Promise<void>;
+  onExecuteTrade: () => Promise<void>;
 }
 
 const TradingPanel: React.FC<TradingPanelProps> = ({
   gameState,
   currentPlayerId,
-  onSelectTradePartner,
-  onSelectAnimalCardsForTrade,
-  onMakeTradeOffer,
-  onConfirmTrade,
-  onExecuteTrade,
-  onCancelTrade,
   onInitiateTrade,
-  onRestartTradeAfterTie
+  onMakeTradeOffer,
+  onExecuteTrade
 }) => {
   const [selectedAnimalCards, setSelectedAnimalCards] = useState<string[]>([]);
   const [selectedMoneyCards, setSelectedMoneyCards] = useState<string[]>([]);
+  const [selectedPartnerId, setSelectedPartnerId] = useState<string | null>(null);
 
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const isCurrentPlayerTurn = gameState.currentTurn === currentPlayerId;
@@ -37,7 +28,6 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   const isChallenged = currentPlayerId === gameState.tradePartner;
 
   const currentOffer = gameState.tradeOffers.find(offer => offer.playerId === currentPlayerId);
-  const otherOffer = gameState.tradeOffers.find(offer => offer.playerId !== currentPlayerId);
 
   // Helper function to get animal card names from selected animal card IDs
   const getAnimalCardNames = () => {
@@ -129,84 +119,79 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   const handleSubmitAnimalSelection = () => {
     if (selectedAnimalCards.length === 0) return;
     
-    onSelectAnimalCardsForTrade(selectedAnimalCards);
+    // Call the backend to select animal cards for trade
+    onMakeTradeOffer(currentPlayerId, [], selectedAnimalCards);
     setSelectedAnimalCards([]);
   };
 
   const handleSubmitMoneyOffer = () => {
     if (selectedMoneyCards.length === 0) return;
     
-    onMakeTradeOffer(currentPlayerId, selectedMoneyCards);
+    onMakeTradeOffer(currentPlayerId, selectedMoneyCards, []);
     setSelectedMoneyCards([]);
   };
 
   // Helper for initiating trade
   const handleInitiateTrade = (partnerId: string) => {
-    console.log('handleInitiateTrade called:', {
-      partnerId,
-      currentPlayerId,
-      tradeState: gameState.tradeState,
-      currentTurn: gameState.currentTurn,
-      isCurrentPlayerTurn: isCurrentPlayerTurn
-    });
-    
-    if (gameState.tradeState === 'none') {
-      // Start the trade and select the partner in one atomic operation
-      console.log('Initiating trade with partner:', partnerId);
-      onInitiateTrade(currentPlayerId, partnerId);
-    } else {
-      console.log('Selecting trade partner:', partnerId);
-      onSelectTradePartner(partnerId);
+    setSelectedPartnerId(partnerId);
+  };
+
+  // Helper for confirming trade with selected partner
+  const handleConfirmTradeWithPartner = () => {
+    if (selectedPartnerId) {
+      console.log('Confirming trade with partner:', selectedPartnerId);
+      onInitiateTrade(currentPlayerId, selectedPartnerId);
+      setSelectedPartnerId(null);
     }
   };
 
-  const renderTradeInitiator = () => (
-    <div style={{
-      padding: '20px',
-      backgroundColor: '#e8f5e8',
-      borderRadius: '8px',
-      border: '2px solid #4CAF50',
-      textAlign: 'center'
-    }}>
-      <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
-        🎯 Trade
-      </h3>
-      <p style={{ margin: '0 0 16px 0', color: '#666' }}>
-        Select a player to trade with (only players with same animal types)
-      </p>
-      <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
-        {(() => {
-          const availablePlayers = gameState.players
-            .filter(player => player.id !== currentPlayerId)
-            .filter(player => hasSameAnimalTypes(player));
+  // Helper for canceling partner selection
+  const handleCancelPartnerSelection = () => {
+    setSelectedPartnerId(null);
+  };
+
+  // Helper function to handle trade confirmation
+  const handleConfirmTrade = () => {
+    // Execute the trade
+    onExecuteTrade();
+  };
+
+
+
+  // Helper function to restart trade after tie
+  const handleRestartTradeAfterTie = () => {
+    // Reset trade state by executing trade (this will clear the trade)
+    onExecuteTrade();
+  };
+
+  const renderTradeInitiator = () => {
+    // If a partner is selected, show confirmation dialog
+    if (selectedPartnerId) {
+      const selectedPartner = gameState.players.find(p => p.id === selectedPartnerId);
+      return (
+        <div style={{
+          padding: '20px',
+          backgroundColor: '#fff3cd',
+          borderRadius: '8px',
+          border: '2px solid #ffc107',
+          textAlign: 'center'
+        }}>
+          <h3 style={{ margin: '0 0 16px 0', color: '#856404' }}>
+            🤝 Confirm Trade
+          </h3>
+          <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+            Are you sure you want to trade with <strong>{selectedPartner?.name}</strong>?
+          </p>
+          <p style={{ margin: '0 0 20px 0', fontSize: '14px', color: '#856404', fontStyle: 'italic' }}>
+            ⚠️ Once you confirm, you cannot change your mind and must complete the trade.
+          </p>
           
-          if (availablePlayers.length === 0) {
-            return (
-              <div style={{
-                padding: '16px',
-                backgroundColor: '#ffebee',
-                borderRadius: '6px',
-                border: '1px solid #f44336',
-                color: '#d32f2f',
-                textAlign: 'center'
-              }}>
-                <p style={{ margin: '0', fontWeight: 'bold' }}>
-                  No players available for trading
-                </p>
-                <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
-                  You can only trade with players who have the same animal types as you.
-                </p>
-              </div>
-            );
-          }
-          
-          return availablePlayers.map(player => (
+          <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
             <button
-              key={player.id}
-              onClick={() => handleInitiateTrade(player.id)}
+              onClick={handleCancelPartnerSelection}
               style={{
                 padding: '12px 20px',
-                backgroundColor: '#4CAF50',
+                backgroundColor: '#6c757d',
                 color: 'white',
                 border: 'none',
                 borderRadius: '6px',
@@ -215,13 +200,92 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                 fontWeight: 'bold'
               }}
             >
-              Trade with {player.name}
+              Cancel
             </button>
-          ));
-        })()}
+            <button
+              onClick={handleConfirmTradeWithPartner}
+              style={{
+                padding: '12px 20px',
+                backgroundColor: '#dc3545',
+                color: 'white',
+                border: 'none',
+                borderRadius: '6px',
+                cursor: 'pointer',
+                fontSize: '14px',
+                fontWeight: 'bold'
+              }}
+            >
+              Confirm Trade
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    // Show partner selection interface
+    return (
+      <div style={{
+        padding: '20px',
+        backgroundColor: '#e8f5e8',
+        borderRadius: '8px',
+        border: '2px solid #4CAF50',
+        textAlign: 'center'
+      }}>
+        <h3 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
+          🎯 Trade
+        </h3>
+        <p style={{ margin: '0 0 16px 0', color: '#666' }}>
+          Select a player to trade with (only players with same animal types)
+        </p>
+        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center', flexWrap: 'wrap' }}>
+          {(() => {
+            const availablePlayers = gameState.players
+              .filter(player => player.id !== currentPlayerId)
+              .filter(player => hasSameAnimalTypes(player));
+            
+            if (availablePlayers.length === 0) {
+              return (
+                <div style={{
+                  padding: '16px',
+                  backgroundColor: '#ffebee',
+                  borderRadius: '6px',
+                  border: '1px solid #f44336',
+                  color: '#d32f2f',
+                  textAlign: 'center'
+                }}>
+                  <p style={{ margin: '0', fontWeight: 'bold' }}>
+                    No players available for trading
+                  </p>
+                  <p style={{ margin: '8px 0 0 0', fontSize: '14px' }}>
+                    You can only trade with players who have the same animal types as you.
+                  </p>
+                </div>
+              );
+            }
+            
+            return availablePlayers.map(player => (
+              <button
+                key={player.id}
+                onClick={() => handleInitiateTrade(player.id)}
+                style={{
+                  padding: '12px 20px',
+                  backgroundColor: '#4CAF50',
+                  color: 'white',
+                  border: 'none',
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  fontSize: '14px',
+                  fontWeight: 'bold'
+                }}
+              >
+                Trade with {player.name}
+              </button>
+            ));
+          })()}
+        </div>
       </div>
-    </div>
-  );
+    );
+  };
 
   const renderChallengerSelectingCards = () => {
     const partner = gameState.players.find(p => p.id === gameState.tradePartner);
@@ -323,7 +387,6 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   };
 
   const renderChallengerBidding = () => {
-    const partner = gameState.players.find(p => p.id === gameState.tradePartner);
     const myMoneyCards = currentPlayer?.hand.filter(card => card.type === 'money') || [];
 
     return (
@@ -438,7 +501,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
           <div style={{ marginBottom: '20px' }}>
             <h4 style={{ margin: '0 0 8px 0', color: '#333' }}>{challenger?.name}'s Bid Cards:</h4>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
-              {challengerOffer.moneyCards.map((cardId, index) => (
+              {challengerOffer.moneyCards.map((_, index) => (
                 <div
                   key={index}
                   style={{
@@ -586,7 +649,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   )}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
-                  {challengerOffer.moneyCards.map((cardId, index) => (
+                  {challengerOffer.moneyCards.map((_, index) => (
                     <div
                       key={index}
                       style={{
@@ -634,7 +697,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
                   )}
                 </p>
                 <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', marginTop: '8px' }}>
-                  {challengedOffer.moneyCards.map((cardId, index) => (
+                  {challengedOffer.moneyCards.map((_, index) => (
                     <div
                       key={index}
                       style={{
@@ -713,151 +776,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     );
   };
 
-  const renderConfirmingTrade = () => {
-    const partner = gameState.players.find(p => 
-      p.id === (isChallenger ? gameState.tradePartner : gameState.tradeInitiator)
-    );
-    const myOffer = currentOffer;
-    const partnerOffer = otherOffer;
 
-    return (
-      <div style={{
-        padding: '20px',
-        backgroundColor: '#f3e5f5',
-        borderRadius: '8px',
-        border: '2px solid #9C27B0'
-      }}>
-        <h3 style={{ margin: '0 0 16px 0', color: '#7B1FA2' }}>
-          ✅ Confirm Trade
-        </h3>
-
-        {/* Trade Summary */}
-        <div style={{ marginBottom: '20px' }}>
-          <h4 style={{ margin: '0 0 12px 0', color: '#333' }}>Trade Summary:</h4>
-          
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '16px' }}>
-            {/* My Offer */}
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#e8f5e8',
-              borderRadius: '4px',
-              border: '1px solid #4CAF50'
-            }}>
-              <h5 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>Your Bid:</h5>
-              {myOffer && (
-                <div>
-                  <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                    Money Cards: {myOffer.moneyCards.length} (${myOffer.totalValue})
-                  </p>
-                </div>
-              )}
-            </div>
-
-            {/* Partner's Offer */}
-            <div style={{
-              padding: '12px',
-              backgroundColor: '#fff3cd',
-              borderRadius: '4px',
-              border: '1px solid #ffc107'
-            }}>
-              <h5 style={{ margin: '0 0 8px 0', color: '#856404' }}>{partner?.name}'s Bid:</h5>
-              {partnerOffer && (
-                <div>
-                  <p style={{ margin: '4px 0', fontSize: '14px' }}>
-                    Money Cards: {partnerOffer.moneyCards.length} (${partnerOffer.totalValue})
-                  </p>
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Winner Display */}
-          {myOffer && partnerOffer && (
-            <div style={{
-              marginTop: '16px',
-              padding: '12px',
-              backgroundColor: myOffer.totalValue === partnerOffer.totalValue ? '#ffebee' :
-                myOffer.totalValue > partnerOffer.totalValue ? '#e8f5e8' : '#ffebee',
-              borderRadius: '4px',
-              border: `1px solid ${myOffer.totalValue === partnerOffer.totalValue ? '#f44336' :
-                myOffer.totalValue > partnerOffer.totalValue ? '#4CAF50' : '#f44336'}`,
-              textAlign: 'center'
-            }}>
-              {myOffer.totalValue === partnerOffer.totalValue ? (
-                <>
-                  <p style={{ 
-                    margin: '0', 
-                    fontSize: '16px', 
-                    fontWeight: 'bold',
-                    color: '#d32f2f'
-                  }}>
-                    🎯 Tie! Trade will restart
-                  </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
-                    Both players bid the same amount
-                  </p>
-                </>
-              ) : (
-                <>
-                  <p style={{ 
-                    margin: '0', 
-                    fontSize: '16px', 
-                    fontWeight: 'bold',
-                    color: myOffer.totalValue > partnerOffer.totalValue ? '#2E7D32' : '#d32f2f'
-                  }}>
-                    {myOffer.totalValue > partnerOffer.totalValue ? '🏆 You Win!' : '❌ You Lose'}
-                  </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '14px', color: '#666' }}>
-                    {myOffer.totalValue > partnerOffer.totalValue 
-                      ? `You get all ${gameState.selectedAnimalCards.length} animal cards`
-                      : `${partner?.name} gets all ${gameState.selectedAnimalCards.length} animal cards`
-                    }
-                  </p>
-                  <p style={{ margin: '4px 0 0 0', fontSize: '12px', color: '#666', fontStyle: 'italic' }}>
-                    Money cards will be exchanged between players
-                  </p>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Action Buttons */}
-        <div style={{ display: 'flex', gap: '12px', justifyContent: 'center' }}>
-          <button
-            onClick={() => onConfirmTrade(currentPlayerId)}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#9C27B0',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            Confirm Trade
-          </button>
-          <button
-            onClick={onCancelTrade}
-            style={{
-              padding: '12px 24px',
-              backgroundColor: '#f44336',
-              color: 'white',
-              border: 'none',
-              borderRadius: '6px',
-              cursor: 'pointer',
-              fontSize: '16px',
-              fontWeight: 'bold'
-            }}
-          >
-            Cancel Trade
-          </button>
-        </div>
-      </div>
-    );
-  };
 
   const renderTradeComplete = () => {
     const challenger = gameState.players.find(p => p.id === gameState.tradeInitiator);
@@ -882,7 +801,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             The trade has been executed successfully.
           </p>
           <button
-            onClick={onExecuteTrade}
+            onClick={handleConfirmTrade}
             style={{
               padding: '12px 24px',
               backgroundColor: '#4CAF50',
@@ -1011,7 +930,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         </div>
 
         <button
-          onClick={onExecuteTrade}
+          onClick={handleConfirmTrade}
           style={{
             padding: '12px 24px',
             backgroundColor: '#4CAF50',
@@ -1052,7 +971,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
             Both players bid the same amount - trade will restart.
           </p>
           <button
-            onClick={onRestartTradeAfterTie}
+            onClick={handleRestartTradeAfterTie}
             style={{
               padding: '12px 24px',
               backgroundColor: '#ff9800',
@@ -1163,7 +1082,7 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
         </div>
 
         <button
-          onClick={onRestartTradeAfterTie}
+          onClick={handleRestartTradeAfterTie}
           style={{
             padding: '12px 24px',
             backgroundColor: '#ff9800',
@@ -1228,12 +1147,16 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
     case 'challenger_bidding':
       if (isChallenger) {
         return renderChallengerBidding();
+      } else if (isChallenged) {
+        return renderChallengedBidding();
       } else {
         return renderSpectatorView();
       }
     
     case 'challenged_bidding':
-      if (isChallenged) {
+      if (isChallenger) {
+        return renderChallengerBidding();
+      } else if (isChallenged) {
         return renderChallengedBidding();
       } else {
         return renderSpectatorView();

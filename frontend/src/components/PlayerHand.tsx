@@ -19,36 +19,23 @@ interface PlayerHandProps {
   currentAuctioneer?: string | null;
 }
 
-const PlayerHand: React.FC<PlayerHandProps> = ({ 
-  player, 
+const PlayerHand: React.FC<PlayerHandProps> = ({
+  player,
   isCurrentPlayer,
   isCurrentTurn,
-  onCardClick, 
-  selectable = false,
-  selectedCards = [],
   showBluffInfo = false,
   bluffInfo,
   currentAuctioneer
 }) => {
   // Debug logging for Tuna bonus cards
   React.useEffect(() => {
-    const tunaBonusCards = player.hand.filter(card => card.id.includes('tuna_bonus'));
+    const moneyCards = player.hand.filter(card => card.type === 'money');
+    const tunaBonusCards = moneyCards.filter(card => card.id.includes('tuna_bonus'));
+    
     if (tunaBonusCards.length > 0) {
-      console.log(`🎯 PlayerHand: ${player.name} has ${tunaBonusCards.length} Tuna bonus cards:`, tunaBonusCards.map(c => `${c.name} ($${c.value})`));
+      console.log(`🎯 TUNA BONUS CARDS FOUND in ${player.name}'s hand:`, tunaBonusCards.map(c => `${c.name} ($${c.value})`));
     }
   }, [player.hand, player.name]);
-  const handleCardClick = (card: Card) => {
-    onCardClick?.(card);
-  };
-
-  const isCardSelected = (card: Card) => {
-    // Only show selection when we have selectedCards prop (for trading context)
-    if (selectedCards.length > 0) {
-      return selectedCards.some(selectedCard => selectedCard.id === card.id);
-    }
-    // Don't show selection for general card viewing
-    return false;
-  };
 
   return (
     <div style={{ 
@@ -115,14 +102,13 @@ const PlayerHand: React.FC<PlayerHandProps> = ({
             const showValue = isCurrentPlayer || card.type === 'animal'; // Show value for own cards or animal cards
             
             return (
-              <CardComponent
-                key={card.id}
-                card={card}
-                onClick={() => handleCardClick(card)}
-                selected={isCardSelected(card)}
-                isOwnCard={isCurrentPlayer}
-                showValue={showValue}
-              />
+                              <CardComponent
+                  key={card.id}
+                  card={card}
+                  onClick={() => {}} // Removed onCardClick prop
+                  selected={false} // Removed selectedCards prop
+                  showValue={showValue}
+                />
             );
           })
         )}

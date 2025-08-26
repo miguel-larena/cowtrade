@@ -6,7 +6,6 @@ interface CardProps {
   onClick?: () => void;
   selected?: boolean;
   disabled?: boolean;
-  isOwnCard?: boolean; // Whether this card belongs to the current player
   showValue?: boolean; // Whether to show the card's value
 }
 
@@ -15,7 +14,6 @@ const CardComponent: React.FC<CardProps> = ({
   onClick, 
   selected = false, 
   disabled = false,
-  isOwnCard = true, // eslint-disable-line @typescript-eslint/no-unused-vars
   showValue = true
 }) => {
   const getCardImage = (card: CardType) => {

@@ -1,5 +1,5 @@
 import React from 'react';
-import type { Player, GameState, AuctionState, Card, AuctionSummary } from '../types';
+import type { Player, AuctionState, Card, AuctionSummary } from '../types';
 import CardComponent from './Card';
 
 interface ScoreboardProps {
@@ -243,7 +243,6 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
                         key={card.id}
                         card={card}
                         showValue={true}
-                        isOwnCard={false}
                       />
                     ))}
                   </div>
@@ -271,7 +270,6 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
                         key={card.id}
                         card={card}
                         showValue={true}
-                        isOwnCard={false}
                       />
                     ))}
                   </div>
