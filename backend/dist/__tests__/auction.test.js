@@ -58,23 +58,23 @@ describe('Auction Logic', () => {
             expect(response.body.auctionEndTime).toBeDefined();
             expect(response.body.auctionSummary).toBeUndefined();
         });
-        it('should handle Tuna bonus correctly', async () => {
-            // Mock the deck to ensure we get a Tuna card
-            // This test will work if Tuna is drawn naturally
+        it('should handle Swordfish bonus correctly', async () => {
+            // Mock the deck to ensure we get a Swordfish card
+            // This test will work if Swordfish is drawn naturally
             const response = await (0, supertest_1.default)(app)
                 .post(`/api/games/${gameId}/auction/start`)
                 .send({ playerId: player1Id })
                 .expect(200);
-            if (response.body.auctionCard?.name === 'Tuna') {
-                expect(response.body.tunaCardsDrawn).toBe(1);
+            if (response.body.auctionCard?.name === 'Swordfish') {
+                expect(response.body.swordfishCardsDrawn).toBe(1);
                 // All players should have received bonus money
                 response.body.players.forEach((player) => {
                     expect(player.money).toBeGreaterThan(90); // Should have received bonus
                     // Check that money cards were actually added to hands
                     const moneyCards = player.hand.filter((card) => card.type === 'money');
-                    const tunaBonusCards = moneyCards.filter((card) => card.id.includes('tuna_bonus'));
-                    expect(tunaBonusCards.length).toBe(1); // Should have 1 Tuna bonus card
-                    expect(tunaBonusCards[0].value).toBe(50); // First Tuna should give $50
+                    const swordfishBonusCards = moneyCards.filter((card) => card.id.includes('swordfish_bonus'));
+                    expect(swordfishBonusCards.length).toBe(1); // Should have 1 Swordfish bonus card
+                    expect(swordfishBonusCards[0].value).toBe(50); // First Swordfish should give $50
                 });
             }
         });
