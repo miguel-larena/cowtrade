@@ -1,4 +1,10 @@
 {
+  "name": "none-of-your-fishiness",
+  "version": "1.0.0",
+  "description": "A game inspired by Kuhhandel",
+  "keywords": ["game", "trading", "animals", "kuhhandel"],
+  "author": "",
+  "license": "ISC",
   "dependencies": {
     "axios": "^1.11.0"
   }

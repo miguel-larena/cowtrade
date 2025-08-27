@@ -1,4 +1,6 @@
-# React + TypeScript + Vite
+# none of your fishiness - Frontend
+
+A React + TypeScript + Vite frontend for the animal trading game inspired by Kuhhandel.
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
 

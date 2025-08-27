@@ -1,5 +1,5 @@
 {
-  "name": "backend",
+  "name": "none-of-your-fishiness-backend",
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
@@ -10,11 +10,11 @@
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage"
   },
-  "keywords": [],
+  "keywords": ["game", "trading", "animals", "kuhhandel"],
   "author": "",
   "license": "ISC",
   "type": "commonjs",
-  "description": "",
+  "description": "Backend for the animal trading game 'none of your fishiness'",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^17.2.0",

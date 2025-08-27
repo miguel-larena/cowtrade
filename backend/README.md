@@ -1,6 +1,6 @@
-# Kuhhandel Backend
+# none of your fishiness - Backend
 
-A Node.js/Express backend for the Kuhhandel (animal trading) game.
+A Node.js/Express backend for the animal trading game inspired by Kuhhandel.
 
 ## Setup
 
