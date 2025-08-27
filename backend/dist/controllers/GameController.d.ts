@@ -14,6 +14,7 @@ export declare class GameController {
     matchBid: (req: Request, res: Response) => Promise<void>;
     clearAuctionSummary: (req: Request, res: Response) => Promise<void>;
     restartAuctionAfterBluff: (req: Request, res: Response) => Promise<void>;
+    giveCardToAuctioneer: (req: Request, res: Response) => Promise<void>;
     initiateTrade: (req: Request, res: Response) => Promise<void>;
     makeTradeOffer: (req: Request, res: Response) => Promise<void>;
     executeTrade: (req: Request, res: Response) => Promise<void>;

@@ -17,7 +17,7 @@ This directory should contain the following image files:
 - `puffer_fish.png` - Puffer Fish (value: 160)
 - `turtle.png` - Turtle (value: 250)
 - `octopus.png` - Octopus (value: 350)
-- `tuna.png` - Tuna (value: 500)
+- `swordfish.png` - Swordfish (value: 500)
 - `dolphin.png` - Dolphin (value: 650)
 - `shark.png` - Shark (value: 800)
 - `whale.png` - Whale (value: 1000)

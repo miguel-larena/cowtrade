@@ -11,6 +11,7 @@ interface AuctionPanelProps {
   onMatchBid: () => void;
   onClearAuctionSummary: () => void;
   onRestartAuctionAfterBluff: () => Promise<void>;
+  onGiveCardToAuctioneer?: () => Promise<void>; // Optional: give card to auctioneer when all players disqualified
 }
 
 const AuctionPanel: React.FC<AuctionPanelProps> = ({
@@ -21,12 +22,52 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
   onEndAuction,
   onMatchBid,
   onClearAuctionSummary,
-  onRestartAuctionAfterBluff
+  onRestartAuctionAfterBluff,
+  onGiveCardToAuctioneer
 }) => {
+  // Function to transform auction summary messages to use "You" when appropriate
+  const transformAuctionMessage = (message: string) => {
+    if (!currentPlayerId || !gameState.auctioneer) return message;
+    
+    // Check if the current player is the auctioneer
+    const isCurrentPlayerAuctioneer = currentPlayerId === gameState.auctioneer;
+    
+    // Transform messages to use "You" when it's the current player's view
+    if (isCurrentPlayerAuctioneer) {
+      // Replace "No one bid on [Animal]. [PlayerName] keeps the card." with "You keep the card"
+      message = message.replace(
+        /No one bid on ([^.]+)\. ([^.]+) keeps the card\./,
+        'No one bid on $1. You keep the card.'
+      );
+      
+      // Replace "[PlayerName] won the auction for [Animal] with a bid of $[Amount]." with "You won the auction..."
+      message = message.replace(
+        /([^.]+) won the auction for ([^.]+) with a bid of \$([^.]+)\./,
+        'You won the auction for $2 with a bid of $$3.'
+      );
+      
+      // Replace "[PlayerName] successfully auctioned [Animal] for $[Amount]." with "You successfully auctioned..."
+      message = message.replace(
+        /([^.]+) successfully auctioned ([^.]+) for \$([^.]+)\./,
+        'You successfully auctioned $2 for $$3.'
+      );
+      
+      // Replace "All other players were disqualified. [PlayerName] receives the [Animal] card." with "You receive the [Animal] card"
+      message = message.replace(
+        /All other players were disqualified\. ([^.]+) receives the ([^.]+) card\./,
+        'All other players were disqualified. You receive the $2 card.'
+      );
+    }
+    
+    return message;
+  };
   const [bidAmount, setBidAmount] = useState<number>(10);
   const [timeLeft, setTimeLeft] = useState<number>(0);
   const [bluffRestartTimer, setBluffRestartTimer] = useState<number>(5);
   const timerExpiredRef = useRef<boolean>(false);
+  const isTimerRunningRef = useRef<boolean>(false);
+  const hasGivenCardToAuctioneerRef = useRef<boolean>(false);
+  const hasRestartedAuctionRef = useRef<boolean>(false);
   const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
   const auctioneer = gameState.players.find(p => p.id === gameState.auctioneer);
 
@@ -51,28 +92,142 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
     }
   }, [gameState.auctionState, gameState.auctionEndTime, onEndAuction, currentPlayerId, gameState.auctioneer]);
 
-  // Bluff restart timer effect - only the auctioneer should restart the auction
+  // Bluff restart timer effect - restart auction or give card to auctioneer
   useEffect(() => {
+    let interval: NodeJS.Timeout | null = null;
+    
+    console.log('Bluff restart timer effect triggered:', {
+      auctionState: gameState.auctionState,
+      auctionSummaryType: gameState.auctionSummary?.type,
+      bluffRestartTimer,
+      currentPlayerId,
+      auctioneer: gameState.auctioneer,
+      isTimerRunning: isTimerRunningRef.current
+    });
+    
+    // Only proceed if we're in bluff detected state
     if (gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'bluff_detected') {
-      setBluffRestartTimer(5);
-      const interval = setInterval(() => {
-        setBluffRestartTimer(prev => {
-          if (prev <= 1) {
-            // Only the auctioneer should restart the auction
-            if (gameState.auctioneer === currentPlayerId) {
-              onRestartAuctionAfterBluff().catch(error => {
-                console.error('Failed to restart auction after bluff:', error);
-              });
+      // Check if all other players are disqualified first (for all players, not just auctioneer)
+      const activePlayers = gameState.players.filter(player => 
+        player.id !== gameState.auctioneer && 
+        !gameState.disqualifiedPlayers.includes(player.id)
+      );
+      
+      console.log('Active players check:', {
+        totalPlayers: gameState.players.length,
+        auctioneer: gameState.auctioneer,
+        disqualifiedPlayers: gameState.disqualifiedPlayers,
+        activePlayers: activePlayers.map(p => p.name),
+        currentPlayerId,
+        isAuctioneer: gameState.auctioneer === currentPlayerId
+      });
+      
+      if (activePlayers.length === 0) {
+        // All other players are disqualified - give card to auctioneer immediately
+        console.log('All players disqualified - giving card to auctioneer immediately (no timer needed)');
+        if (gameState.auctioneer === currentPlayerId && !hasGivenCardToAuctioneerRef.current) {
+          console.log('Calling onGiveCardToAuctioneer (first time)');
+          hasGivenCardToAuctioneerRef.current = true;
+          onGiveCardToAuctioneer?.().catch(error => {
+            console.error('Failed to give card to auctioneer:', error);
+          });
+        }
+        return; // Exit early, no timer needed
+      }
+      
+      // Only start timer if there are active players and timer isn't already running
+      if (!isTimerRunningRef.current) {
+        console.log('Starting bluff restart timer');
+        isTimerRunningRef.current = true;
+        setBluffRestartTimer(5);
+        interval = setInterval(() => {
+          setBluffRestartTimer(prev => {
+            console.log('Bluff restart timer tick:', prev);
+            if (prev <= 1) {
+              // Timer finished - restart the auction (we already know there are active players)
+              if (gameState.auctioneer === currentPlayerId && !hasRestartedAuctionRef.current) {
+                console.log('Active players remain - restarting auction (first time)');
+                hasRestartedAuctionRef.current = true;
+                onRestartAuctionAfterBluff().catch(error => {
+                  console.error('Failed to restart auction after bluff:', error);
+                });
+              }
+              // Clear the timer and stop the countdown
+              isTimerRunningRef.current = false;
+              if (interval) {
+                clearInterval(interval);
+              }
+              return 0;
             }
-            return 0;
+            return prev - 1;
+          });
+        }, 1000);
+      }
+    } else if (gameState.auctionState === 'summary' && gameState.auctionSummary?.type === 'no_bids') {
+      // Handle no bids scenario - this means the auction ended with no bids
+      // This could happen after a restart if all players are disqualified
+      console.log('Auction ended with no bids - checking if auctioneer should get card');
+      if (gameState.auctioneer === currentPlayerId) {
+        // Check if all other players are disqualified
+        const activePlayers = gameState.players.filter(player => 
+          player.id !== gameState.auctioneer && 
+          !gameState.disqualifiedPlayers.includes(player.id)
+        );
+        
+        if (activePlayers.length === 0) {
+          console.log('All players disqualified and no bids - auctioneer should already have the card');
+          // The backend should have already given the card to the auctioneer
+          // We just need to clear the summary to move on
+          try {
+            onClearAuctionSummary?.();
+          } catch (error) {
+            console.error('Failed to clear auction summary:', error);
           }
-          return prev - 1;
-        });
-      }, 1000);
-
-      return () => clearInterval(interval);
+        }
+      }
+      // Reset timer when not in bluff detected state
+      if (bluffRestartTimer > 0) {
+        console.log('Resetting bluff restart timer - auction ended with no bids');
+        setBluffRestartTimer(0);
+        isTimerRunningRef.current = false;
+      }
+      // Reset the give card ref when not in bluff detected state
+      if (hasGivenCardToAuctioneerRef.current) {
+        console.log('Resetting hasGivenCardToAuctioneer ref - not in bluff detected state');
+        hasGivenCardToAuctioneerRef.current = false;
+      }
+      // Reset the restart auction ref when not in bluff detected state
+      if (hasRestartedAuctionRef.current) {
+        console.log('Resetting hasRestartedAuction ref - not in bluff detected state');
+        hasRestartedAuctionRef.current = false;
+      }
+    } else {
+      // Reset timer when not in bluff detected state
+      if (bluffRestartTimer > 0) {
+        console.log('Resetting bluff restart timer - not in bluff detected state');
+        setBluffRestartTimer(0);
+        isTimerRunningRef.current = false;
+      }
+      // Reset the give card ref when not in bluff detected state
+      if (hasGivenCardToAuctioneerRef.current) {
+        console.log('Resetting hasGivenCardToAuctioneer ref - not in bluff detected state');
+        hasGivenCardToAuctioneerRef.current = false;
+      }
+      // Reset the restart auction ref when not in bluff detected state
+      if (hasRestartedAuctionRef.current) {
+        console.log('Resetting hasRestartedAuction ref - not in bluff detected state');
+        hasRestartedAuctionRef.current = false;
+      }
     }
-  }, [gameState.auctionState, gameState.auctionSummary?.type, onRestartAuctionAfterBluff, currentPlayerId, gameState.auctioneer]);
+
+    return () => {
+      if (interval) {
+        console.log('Cleaning up bluff restart timer interval');
+        clearInterval(interval);
+        isTimerRunningRef.current = false;
+      }
+    };
+  }, [gameState.auctionState, gameState.auctionSummary?.type, onRestartAuctionAfterBluff, onGiveCardToAuctioneer, onClearAuctionSummary, currentPlayerId, gameState.auctioneer]);
 
   const handleBidChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = parseInt(e.target.value) || 0;
@@ -126,13 +281,13 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
 
   return (
     <div style={{
-      border: '2px solid #4CAF50',
+      border: '2px solid #2196F3',
       borderRadius: '8px',
       padding: '20px',
       margin: '16px',
-      backgroundColor: '#f0f8f0'
+              backgroundColor: '#e3f2fd'
     }}>
-      <h2 style={{ margin: '0 0 16px 0', color: '#2E7D32' }}>
+      <h2 style={{ margin: '0 0 16px 0', color: '#1976D2' }}>
         Auction
       </h2>
       
@@ -140,9 +295,9 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
       <div style={{ 
         marginBottom: '16px',
         padding: '8px 12px',
-        backgroundColor: isCurrentPlayerTurn ? '#4CAF50' : '#f5f5f5',
+        backgroundColor: isCurrentPlayerTurn ? '#2196F3' : '#f5f5f5',
         borderRadius: '4px',
-        border: isCurrentPlayerTurn ? '2px solid #2E7D32' : '1px solid #ddd'
+        border: isCurrentPlayerTurn ? '2px solid #1976D2' : '1px solid #ddd'
       }}>
         <div style={{ 
           fontSize: '14px', 
@@ -207,7 +362,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             onClick={() => onStartAuction(currentPlayerId)}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#4CAF50',
+              backgroundColor: '#2196F3',
               color: 'white',
               border: 'none',
               borderRadius: '4px',
@@ -221,8 +376,8 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         </div>
       )}
 
-      {/* Tuna Bonus Notification */}
-      {gameState.auctionCard && gameState.auctionCard.name === 'Tuna' && (
+      {/* Swordfish Bonus Notification */}
+      {gameState.swordfishCardsDrawn > 0 && (
         <div style={{
           marginBottom: '20px',
           padding: '16px',
@@ -232,24 +387,65 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
           textAlign: 'center'
         }}>
           <div style={{ fontSize: '18px', fontWeight: 'bold', color: '#1976D2', marginBottom: '8px' }}>
-            🐟 Tuna Bonus!
+            🐟 Swordfish Bonus!
           </div>
           <div style={{ fontSize: '14px', color: '#1976D2' }}>
-            All players received ${gameState.tunaCardsDrawn === 1 ? '50' : 
-                                gameState.tunaCardsDrawn === 2 ? '100' : 
-                                gameState.tunaCardsDrawn === 3 ? '200' : '500'}!
+            All players received ${gameState.swordfishCardsDrawn === 1 ? '50' : 
+                                gameState.swordfishCardsDrawn === 2 ? '100' : 
+                                gameState.swordfishCardsDrawn === 3 ? '200' : '500'}!
           </div>
         </div>
       )}
 
       {/* Auction Card Display */}
       {gameState.auctionCard && (
-        <div style={{ marginBottom: '20px' }}>
-          <h3 style={{ margin: '0 0 12px 0' }}>
-            {auctioneer && ` ${auctioneer.name} is auctioning`}
-          </h3>
-          <div style={{ display: 'flex', justifyContent: 'center' }}>
-            <CardComponent card={gameState.auctionCard} />
+        <div style={{ 
+          marginBottom: '20px',
+          padding: '20px',
+          backgroundColor: '#e3f2fd',
+          borderRadius: '8px',
+          border: '2px solid #2196F3'
+        }}>
+          <div style={{ 
+            display: 'flex', 
+            alignItems: 'center',
+            gap: '20px'
+          }}>
+            {/* Left side - Text content */}
+            <div style={{ flex: 1 }}>
+              <h3 style={{ 
+                margin: '0 0 12px 0', 
+                color: '#1976D2',
+                fontSize: '18px',
+                fontWeight: 'bold'
+              }}>
+                🎯 Current Auction
+              </h3>
+              <div style={{ 
+                fontSize: '16px', 
+                color: '#1976D2',
+                marginBottom: '8px'
+              }}>
+                {auctioneer && `${auctioneer.id === currentPlayerId ? 'You are' : `${auctioneer.name} is`} auctioning a ${gameState.auctionCard.name}`}
+              </div>
+            </div>
+            
+            {/* Right side - Large card display */}
+            <div style={{ 
+              display: 'flex', 
+              justifyContent: 'center',
+              alignItems: 'center'
+            }}>
+              <div style={{
+                transform: 'scale(1.5)',
+                transformOrigin: 'center'
+              }}>
+                <CardComponent 
+                  card={gameState.auctionCard} 
+                  onCardClick={() => {}}
+                />
+              </div>
+            </div>
           </div>
         </div>
       )}
@@ -262,7 +458,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
           </div>
           {gameState.currentBidder && (
             <div style={{ fontSize: '14px', color: '#666' }}>
-              Bidder: {gameState.players.find(p => p.id === gameState.currentBidder)?.name}
+              Bidder: {gameState.currentBidder === currentPlayerId ? 'You' : gameState.players.find(p => p.id === gameState.currentBidder)?.name}
             </div>
           )}
           
@@ -319,7 +515,10 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                           transform: 'scale(0.7)',
                           transformOrigin: 'left center'
                         }}>
-                          <CardComponent card={card} />
+                          <CardComponent 
+                            card={card} 
+                            onCardClick={() => {}}
+                          />
                         </div>
                       ))}
                     </div>
@@ -373,7 +572,7 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
                   disabled={!canBid && !isBluffing}
                   style={{
                     padding: '8px 16px',
-                    backgroundColor: canBid ? '#4CAF50' : isBluffing ? '#FF5722' : '#ccc',
+                    backgroundColor: canBid ? '#2196F3' : isBluffing ? '#FF5722' : '#ccc',
                     color: 'white',
                     border: 'none',
                     borderRadius: '4px',
@@ -470,14 +669,14 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
         <div style={{
           marginTop: '20px',
           padding: '20px',
-          backgroundColor: '#e8f5e8',
+          backgroundColor: '#e3f2fd',
           borderRadius: '8px',
-          border: '2px solid #4CAF50',
+          border: '2px solid #2196F3',
           textAlign: 'center'
         }}>
           <h3 style={{ 
             margin: '0 0 16px 0', 
-            color: '#2E7D32'
+            color: '#1976D2'
           }}>
             🎯 Auction Complete
           </h3>
@@ -488,13 +687,81 @@ const AuctionPanel: React.FC<AuctionPanelProps> = ({
             marginBottom: '20px',
             lineHeight: '1.4'
           }}>
-            {gameState.auctionSummary.message}
+            {transformAuctionMessage(gameState.auctionSummary.message)}
           </div>
+          
+          {/* Show disqualified players list when auctioneer wins */}
+          {gameState.auctionSummary.type === 'auctioneer_wins' && gameState.disqualifiedPlayers.length > 0 && (
+            <div style={{ 
+              marginTop: '20px',
+              padding: '16px',
+              backgroundColor: '#ffebee',
+              border: '1px solid #f44336',
+              borderRadius: '8px',
+              textAlign: 'left'
+            }}>
+              <div style={{ fontSize: '16px', fontWeight: 'bold', color: '#d32f2f', marginBottom: '12px', textAlign: 'center' }}>
+                🚫 Disqualified Players
+              </div>
+              {gameState.disqualifiedPlayers.map(playerId => {
+                const player = gameState.players.find(p => p.id === playerId);
+                if (!player) return null;
+                
+                const moneyCards = player.hand.filter(card => card.type === 'money');
+                const totalMoney = moneyCards.reduce((sum, card) => sum + card.value, 0);
+                
+                return (
+                  <div key={playerId} style={{
+                    marginBottom: '16px',
+                    padding: '12px',
+                    backgroundColor: '#fff',
+                    border: '1px solid #f44336',
+                    borderRadius: '6px'
+                  }}>
+                    <div style={{ 
+                      fontSize: '14px', 
+                      fontWeight: 'bold', 
+                      color: '#d32f2f',
+                      marginBottom: '8px'
+                    }}>
+                      {player.name} - Total Money: ${totalMoney}
+                    </div>
+                    <div style={{ 
+                      fontSize: '12px', 
+                      color: '#666',
+                      marginBottom: '8px'
+                    }}>
+                      Money Cards:
+                    </div>
+                    <div style={{ 
+                      display: 'flex', 
+                      gap: '6px', 
+                      flexWrap: 'wrap',
+                      maxWidth: '100%'
+                    }}>
+                      {moneyCards.map(card => (
+                        <div key={card.id} style={{
+                          transform: 'scale(0.8)',
+                          transformOrigin: 'left center'
+                        }}>
+                          <CardComponent 
+                            card={card} 
+                            onCardClick={() => {}}
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+          
           <button
             onClick={onClearAuctionSummary}
             style={{
               padding: '12px 24px',
-              backgroundColor: '#4CAF50',
+              backgroundColor: '#2196F3',
               color: 'white',
               border: 'none',
               borderRadius: '4px',

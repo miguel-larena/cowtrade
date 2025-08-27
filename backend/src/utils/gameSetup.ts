@@ -38,11 +38,11 @@ const animalCards: Card[] = [
   { id: 'octopus_3', type: 'animal', value: 350, name: 'Octopus' },
   { id: 'octopus_4', type: 'animal', value: 350, name: 'Octopus' },
   
-  // Tuna (4) - seventh lowest value
-  { id: 'tuna_1', type: 'animal', value: 500, name: 'Tuna' },
-  { id: 'tuna_2', type: 'animal', value: 500, name: 'Tuna' },
-  { id: 'tuna_3', type: 'animal', value: 500, name: 'Tuna' },
-  { id: 'tuna_4', type: 'animal', value: 500, name: 'Tuna' },
+  // Swordfish (4) - seventh lowest value
+  { id: 'swordfish_1', type: 'animal', value: 500, name: 'Swordfish' },
+  { id: 'swordfish_2', type: 'animal', value: 500, name: 'Swordfish' },
+  { id: 'swordfish_3', type: 'animal', value: 500, name: 'Swordfish' },
+  { id: 'swordfish_4', type: 'animal', value: 500, name: 'Swordfish' },
   
   // Dolphin (4) - eighth lowest value
   { id: 'dolphin_1', type: 'animal', value: 650, name: 'Dolphin' },

@@ -14,10 +14,152 @@ interface GameBoardProps {
   onMatchBid: () => Promise<void>;
   onClearAuctionSummary: () => Promise<void>;
   onRestartAuctionAfterBluff: () => Promise<void>;
+  onGiveCardToAuctioneer?: () => Promise<void>; // Optional: give card to auctioneer when all players disqualified
   onInitiateTrade: (initiatorId: string, partnerId: string) => Promise<void>;
   onMakeTradeOffer: (playerId: string, moneyCards: string[], animalCards: string[]) => Promise<void>;
   onExecuteTrade: () => Promise<void>;
 }
+
+// Action Button Component with hold-to-confirm functionality
+interface ActionButtonProps {
+  icon: string;
+  title: string;
+  description: string;
+  backgroundColor: string;
+  borderColor: string;
+  textColor: string;
+  onConfirm: () => void;
+  disabled?: boolean;
+  requireHold?: boolean; // Whether to require hold-to-confirm
+}
+
+const ActionButton: React.FC<ActionButtonProps> = ({
+  icon,
+  title,
+  description,
+  backgroundColor,
+  borderColor,
+  textColor,
+  onConfirm,
+  disabled = false,
+  requireHold = true
+}) => {
+  const [isHolding, setIsHolding] = React.useState(false);
+  const [holdProgress, setHoldProgress] = React.useState(0);
+  const holdTimeoutRef = React.useRef<NodeJS.Timeout | null>(null);
+  const holdIntervalRef = React.useRef<NodeJS.Timeout | null>(null);
+  const HOLD_DURATION = 1500; // 1.5 seconds to confirm
+
+  const startHold = () => {
+    if (disabled) return;
+    
+    if (!requireHold) {
+      onConfirm();
+      return;
+    }
+    
+    setIsHolding(true);
+    setHoldProgress(0);
+    
+    // Start progress bar
+    holdIntervalRef.current = setInterval(() => {
+      setHoldProgress(prev => {
+        const newProgress = prev + (100 / (HOLD_DURATION / 16)); // 60fps update
+        if (newProgress >= 100) {
+          // Hold complete - confirm action
+          clearInterval(holdIntervalRef.current!);
+          setIsHolding(false);
+          setHoldProgress(0);
+          onConfirm();
+          return 0;
+        }
+        return newProgress;
+      });
+    }, 16);
+    
+    // Set timeout to complete the hold
+    holdTimeoutRef.current = setTimeout(() => {
+      if (holdIntervalRef.current) {
+        clearInterval(holdIntervalRef.current);
+      }
+      setIsHolding(false);
+      setHoldProgress(0);
+      onConfirm();
+    }, HOLD_DURATION);
+  };
+
+  const stopHold = () => {
+    if (holdTimeoutRef.current) {
+      clearTimeout(holdTimeoutRef.current);
+      holdTimeoutRef.current = null;
+    }
+    if (holdIntervalRef.current) {
+      clearInterval(holdIntervalRef.current);
+      holdIntervalRef.current = null;
+    }
+    setIsHolding(false);
+    setHoldProgress(0);
+  };
+
+  React.useEffect(() => {
+    return () => {
+      if (holdTimeoutRef.current) {
+        clearTimeout(holdTimeoutRef.current);
+      }
+      if (holdIntervalRef.current) {
+        clearInterval(holdIntervalRef.current);
+      }
+    };
+  }, []);
+
+  return (
+    <div
+      style={{
+        padding: '20px',
+        backgroundColor: backgroundColor,
+        borderRadius: '8px',
+        border: `2px solid ${borderColor}`,
+        textAlign: 'center',
+        cursor: disabled ? 'not-allowed' : 'pointer',
+        transition: 'all 0.2s ease',
+        position: 'relative' as const,
+        overflow: 'hidden',
+        opacity: disabled ? 0.6 : 1
+      }}
+      onMouseDown={startHold}
+      onMouseUp={stopHold}
+      onMouseLeave={stopHold}
+      onTouchStart={startHold}
+      onTouchEnd={stopHold}
+      onTouchCancel={stopHold}
+    >
+      {/* Progress bar overlay */}
+      {isHolding && (
+        <div
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: `${holdProgress}%`,
+            backgroundColor: 'rgba(255, 255, 255, 0.6)',
+            transition: 'width 0.016s linear',
+            zIndex: 1
+          }}
+        />
+      )}
+      
+      {/* Content */}
+      <div style={{ position: 'relative', zIndex: 2 }}>
+        <div style={{ fontSize: '32px', marginBottom: '12px' }}>{icon}</div>
+        <h4 style={{ margin: '0 0 8px 0', color: textColor }}>{title}</h4>
+        <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
+          {description}
+        </p>
+      </div>
+    </div>
+  );
+};
 
 const GameBoard: React.FC<GameBoardProps> = ({
   gameState,
@@ -28,18 +170,62 @@ const GameBoard: React.FC<GameBoardProps> = ({
   onMatchBid,
   onClearAuctionSummary,
   onRestartAuctionAfterBluff,
+  onGiveCardToAuctioneer,
   onInitiateTrade,
   onMakeTradeOffer,
   onExecuteTrade
 }) => {
   const [showTradeInterface, setShowTradeInterface] = React.useState(false);
+  const [tradePartnerConfirmed, setTradePartnerConfirmed] = React.useState(false);
 
-  // Only reset trade interface when trade is actually completed
+  // Only reset trade interface when trade is completely finished
   React.useEffect(() => {
-    if (gameState.tradeState === 'none' && showTradeInterface) {
+    // Only reset if we're not in any trade state AND we were showing the trade interface
+    // AND there's no trade initiator (meaning trade is completely done)
+    if (gameState.tradeState === 'none' && showTradeInterface && gameState.tradeInitiator === null) {
+      console.log('Resetting trade interface - trade completely finished');
       setShowTradeInterface(false);
+      setTradePartnerConfirmed(false);
     }
-  }, [gameState.tradeState]); // Removed showTradeInterface from dependencies
+  }, [gameState.tradeState, gameState.tradeInitiator]);
+
+  // Automatically show trade interface when trade is in progress
+  React.useEffect(() => {
+    if (gameState.tradeState !== 'none' && !showTradeInterface) {
+      console.log('Auto-showing trade interface - trade in progress:', gameState.tradeState);
+      setShowTradeInterface(true);
+    }
+  }, [gameState.tradeState, showTradeInterface]);
+
+  // Debug logging
+  React.useEffect(() => {
+    console.log('Trade state changed:', {
+      tradeState: gameState.tradeState,
+      tradeInitiator: gameState.tradeInitiator,
+      showTradeInterface,
+      currentPhase: gameState.currentPhase
+    });
+  }, [gameState.tradeState, gameState.tradeInitiator, showTradeInterface, gameState.currentPhase]);
+
+    // Check if there are valid trading partners
+  const hasValidTradingPartners = React.useMemo(() => {
+    if (!currentPlayerId || !gameState.players) return false;
+    
+    const currentPlayer = gameState.players.find(p => p.id === currentPlayerId);
+    if (!currentPlayer) return false;
+    
+    // Check if current player has animal cards to trade
+    const hasAnimalCards = currentPlayer.hand.some(card => card.type === 'animal');
+    if (!hasAnimalCards) return false;
+    
+    // Check if there are other players with animal cards
+    const otherPlayersWithAnimals = gameState.players.filter(p => 
+      p.id !== currentPlayerId && 
+      p.hand.some(card => card.type === 'animal')
+    );
+    
+    return otherPlayersWithAnimals.length > 0;
+  }, [currentPlayerId, gameState.players]);
 
   const renderPhaseContent = () => {
     switch (gameState.currentPhase) {
@@ -100,6 +286,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 onInitiateTrade={onInitiateTrade}
                 onMakeTradeOffer={onMakeTradeOffer}
                 onExecuteTrade={onExecuteTrade}
+                onTradePartnerConfirmed={() => setTradePartnerConfirmed(true)}
               />
             </div>
           );
@@ -107,8 +294,8 @@ const GameBoard: React.FC<GameBoardProps> = ({
 
         return (
           <div>
-            {/* Show choice between Auction and Trade when it's the player's turn */}
-            {currentPlayerId && gameState.currentTurn === currentPlayerId ? (
+            {/* Show choice between Auction and Trade when it's the player's turn AND no trade partner has been confirmed */}
+            {currentPlayerId && gameState.currentTurn === currentPlayerId && !tradePartnerConfirmed ? (
               <div style={{
                 padding: '20px',
                 backgroundColor: '#f8f9fa',
@@ -133,55 +320,39 @@ const GameBoard: React.FC<GameBoardProps> = ({
                   margin: '0 auto'
                 }}>
                   {/* Auction Option */}
-                  <div style={{
-                    padding: '20px',
-                    backgroundColor: '#e8f5e8',
-                    borderRadius: '8px',
-                    border: '2px solid #4CAF50',
-                    textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
-                  }}
-                  onClick={() => {
-                    // Start auction with current player as auctioneer
-                    onStartAuction(currentPlayerId);
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(76, 175, 80, 0.3)';
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.transform = 'translateY(0)';
-                    e.currentTarget.style.boxShadow = 'none';
-                  }}
-                  >
-                    <div style={{ fontSize: '32px', marginBottom: '12px' }}>🏷️</div>
-                    <h4 style={{ margin: '0 0 8px 0', color: '#2E7D32' }}>Start Auction</h4>
-                    <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                      {gameState.auctionCard ? 
-                        `Auction the ${gameState.auctionCard.name} card` : 
-                        'Draw and auction a new card'
-                      }
-                    </p>
-                  </div>
+                  <ActionButton
+                    icon="🏷️"
+                    title="Auction"
+                    description="Draw and auction an Animal"
+                    backgroundColor="#e3f2fd"
+                    borderColor="#2196F3"
+                    textColor="#1976D2"
+                    onConfirm={() => onStartAuction(currentPlayerId)}
+                    requireHold={true}
+                  />
 
                   {/* Trade Option */}
                   <div style={{
                     padding: '20px',
-                    backgroundColor: '#fff3cd',
+                    backgroundColor: hasValidTradingPartners ? '#ffebee' : '#f5f5f5',
                     borderRadius: '8px',
-                    border: '2px solid #ffc107',
+                    border: `2px solid ${hasValidTradingPartners ? '#f44336' : '#ccc'}`,
                     textAlign: 'center',
-                    cursor: 'pointer',
-                    transition: 'all 0.2s ease'
+                    cursor: hasValidTradingPartners ? 'pointer' : 'not-allowed',
+                    transition: 'all 0.2s ease',
+                    opacity: hasValidTradingPartners ? 1 : 0.6
                   }}
                   onClick={() => {
-                    // Switch to trade interface - this is a commitment
-                    setShowTradeInterface(true);
+                    if (hasValidTradingPartners) {
+                      // Switch to trade interface - this is a commitment
+                      setShowTradeInterface(true);
+                    }
                   }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.transform = 'translateY(-2px)';
-                    e.currentTarget.style.boxShadow = '0 4px 12px rgba(255, 193, 7, 0.3)';
+                    if (hasValidTradingPartners) {
+                      e.currentTarget.style.transform = 'translateY(-2px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(244, 67, 54, 0.3)';
+                    }
                   }}
                   onMouseLeave={(e) => {
                     e.currentTarget.style.transform = 'translateY(0)';
@@ -189,11 +360,13 @@ const GameBoard: React.FC<GameBoardProps> = ({
                   }}
                   >
                     <div style={{ fontSize: '32px', marginBottom: '12px' }}>🤝</div>
-                    <h4 style={{ margin: '0 0 8px 0', color: '#856404' }}>Initiate Trade</h4>
+                    <h4 style={{ margin: '0 0 8px 0', color: hasValidTradingPartners ? '#d32f2f' : '#999' }}>Trade</h4>
                     <p style={{ margin: '0', fontSize: '14px', color: '#666' }}>
-                      Trade animal cards with another player
+                      {hasValidTradingPartners 
+                        ? 'Challenge a player to a trade battle' 
+                        : 'No players available to trade with'
+                      }
                     </p>
-
                   </div>
                 </div>
               </div>
@@ -210,10 +383,11 @@ const GameBoard: React.FC<GameBoardProps> = ({
                 onMatchBid={onMatchBid}
                 onClearAuctionSummary={onClearAuctionSummary}
                 onRestartAuctionAfterBluff={onRestartAuctionAfterBluff}
+                onGiveCardToAuctioneer={onGiveCardToAuctioneer}
               />
             ) : (
-              /* Show current auction card if available but no auction in progress */
-              gameState.auctionCard && (
+              /* Show current auction card if available but no auction in progress AND no trade in progress */
+              gameState.auctionCard && gameState.tradeState === 'none' && (
                 <div style={{
                   padding: '20px',
                   backgroundColor: '#e3f2fd',
@@ -312,7 +486,7 @@ const GameBoard: React.FC<GameBoardProps> = ({
     <div style={{
       width: '100vw',
       minHeight: '100vh',
-      fontFamily: 'Arial, sans-serif',
+              fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
       color: '#2c3e50',
       backgroundColor: '#f8f9fa',
       padding: '16px',

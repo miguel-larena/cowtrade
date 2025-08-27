@@ -107,6 +107,12 @@ export class ApiService {
     });
   }
 
+  static async giveCardToAuctioneer(gameId: string): Promise<GameState> {
+    return this.makeRequest<GameState>(`/${gameId}/auction/give-card-to-auctioneer`, {
+      method: 'POST',
+    });
+  }
+
   // Trade endpoints (for future implementation)
   static async initiateTrade(gameId: string, initiatorId: string, partnerId: string): Promise<GameState> {
     return this.makeRequest<GameState>(`/${gameId}/trade/initiate`, {

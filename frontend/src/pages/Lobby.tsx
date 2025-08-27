@@ -108,7 +108,7 @@ const Lobby: React.FC<LobbyProps> = ({
     <div style={{
       width: '100vw',
       minHeight: '100vh',
-      fontFamily: 'Arial, sans-serif',
+              fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif',
       color: '#2c3e50',
       backgroundColor: '#f8f9fa',
       padding: '16px',
@@ -120,10 +120,39 @@ const Lobby: React.FC<LobbyProps> = ({
         marginBottom: 'clamp(24px, 6vw, 40px)',
         fontSize: 'clamp(24px, 6vw, 36px)',
         fontWeight: 'bold',
-        fontFamily: 'Arial, sans-serif'
+        fontFamily: 'Helvetica Neue, Helvetica, Arial, sans-serif'
       }}>
-        <div style={{ fontSize: 'clamp(32px, 8vw, 48px)', marginBottom: '8px' }}>🐟</div>
-        <div>None of Your Fishiness</div>
+        <div style={{ 
+          fontSize: 'clamp(32px, 8vw, 48px)', 
+          marginBottom: '8px',
+          display: 'flex',
+          justifyContent: 'center',
+          alignItems: 'center'
+        }}>
+          <img 
+            src="/logo.png" 
+            alt="Game Logo" 
+            style={{
+              width: 'clamp(80px, 20vw, 120px)',
+              height: 'clamp(80px, 20vw, 120px)',
+              objectFit: 'contain'
+            }}
+            onError={(e) => {
+              // Fallback to text if image fails to load
+              const target = e.target as HTMLImageElement;
+              target.style.display = 'none';
+              const fallback = target.nextElementSibling as HTMLElement;
+              if (fallback) fallback.style.display = 'block';
+            }}
+          />
+          <div style={{ 
+            display: 'none',
+            textAlign: 'center'
+          }}>
+            <div style={{ fontSize: 'clamp(32px, 8vw, 48px)', marginBottom: '8px' }}>🐟</div>
+            <div>None of Your Fishiness</div>
+          </div>
+        </div>
       </h1>
 
       {!gameState ? (

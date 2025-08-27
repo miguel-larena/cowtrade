@@ -138,7 +138,7 @@ npm run test:coverage
 ## Test Data
 
 ### Deck Composition
-- **40 Animal Cards**: 4 of each type (Shrimp, Clam, Lobster, Puffer Fish, Turtle, Octopus, Tuna, Dolphin, Shark, Whale)
+- **40 Animal Cards**: 4 of each type (Shrimp, Clam, Lobster, Puffer Fish, Turtle, Octopus, Swordfish, Dolphin, Shark, Whale)
 - **6 Money Cards**: Values 0, 10, 50, 100, 200, 500
 
 ### Starting Hand

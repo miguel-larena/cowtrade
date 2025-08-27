@@ -21,7 +21,7 @@ export interface TradeOffer {
     totalValue: number;
 }
 export interface AuctionSummary {
-    type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win';
+    type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win' | 'auctioneer_wins';
     message: string;
     auctioneerName: string;
     winnerName?: string;
@@ -43,7 +43,7 @@ export interface GameState {
     auctioneer: string | null;
     auctionEndTime?: number;
     disqualifiedPlayers: string[];
-    tunaCardsDrawn: number;
+    swordfishCardsDrawn: number;
     auctionSummary?: AuctionSummary;
     tradeState: TradeState;
     tradeInitiator: string | null;

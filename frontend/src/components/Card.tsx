@@ -7,6 +7,7 @@ interface CardProps {
   selected?: boolean;
   disabled?: boolean;
   showValue?: boolean; // Whether to show the card's value
+  onCardClick?: (card: CardType) => void; // For card enlargement
 }
 
 const CardComponent: React.FC<CardProps> = ({ 
@@ -14,8 +15,17 @@ const CardComponent: React.FC<CardProps> = ({
   onClick, 
   selected = false, 
   disabled = false,
-  showValue = true
+  showValue = true,
+  onCardClick
 }) => {
+  const handleCardClick = () => {
+    if (onCardClick) {
+      onCardClick(card);
+    } else if (onClick) {
+      onClick();
+    }
+  };
+
   const getCardImage = (card: CardType) => {
     if (card.type === 'money') {
       // Use money card images based on value
@@ -35,32 +45,31 @@ const CardComponent: React.FC<CardProps> = ({
       case 'puffer fish': return '🐡';
       case 'turtle': return '🐢';
       case 'octopus': return '🐙';
-      case 'tuna': return '🐟';
+              case 'swordfish': return '🐟';
       case 'dolphin': return '🐬';
       case 'shark': return '🦈';
       case 'whale': return '🐋';
       default: return '🐠';
     }
   };
+
   const imageStyle = {
-    width: 'clamp(120px, 12vw, 160px)',
-    height: 'clamp(168px, 16.8vw, 224px)',
+    width: 'clamp(80px, 8vw, 100px)',
+    height: 'clamp(80px, 8vw, 100px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
     border: selected ? '3px solid #4CAF50' : 'none',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
+    borderRadius: '6px',
     objectFit: 'contain' as const,
   };
 
   const fallbackStyle = {
-    width: 'clamp(120px, 12vw, 160px)',
-    height: 'clamp(168px, 16.8vw, 224px)',
+    width: 'clamp(80px, 8vw, 100px)',
+    height: 'clamp(80px, 8vw, 100px)',
     cursor: disabled ? 'not-allowed' : 'pointer',
     opacity: disabled ? 0.6 : 1,
     border: selected ? '3px solid #4CAF50' : 'none',
-    borderRadius: '8px',
-    transition: 'all 0.2s ease',
+    borderRadius: '6px',
     backgroundColor: card.type === 'animal' ? '#f0f8ff' : '#fff8dc',
     display: 'flex',
     flexDirection: 'column' as const,
@@ -78,7 +87,7 @@ const CardComponent: React.FC<CardProps> = ({
         src={getCardImage(card)}
         alt={card.type === 'money' ? `$${card.value} money card` : `${card.name} animal card (${card.value} points)`}
         style={imageStyle}
-        onClick={disabled ? undefined : onClick}
+        onClick={disabled ? undefined : handleCardClick}
         onError={(e) => {
           // Fallback to styled div if image fails to load
           const target = e.target as HTMLImageElement;
@@ -106,8 +115,8 @@ const CardComponent: React.FC<CardProps> = ({
           }
           
           // Add click handler to fallback
-          if (!disabled && onClick) {
-            fallback.addEventListener('click', onClick);
+          if (!disabled && handleCardClick) {
+            fallback.addEventListener('click', handleCardClick);
           }
           
           // Replace the img with the fallback div
@@ -123,7 +132,7 @@ const CardComponent: React.FC<CardProps> = ({
         src="/images/cards/back.png"
         alt="Face-down card"
         style={imageStyle}
-        onClick={disabled ? undefined : onClick}
+        onClick={disabled ? undefined : handleCardClick}
         onError={(e) => {
           // Fallback to question mark if back image fails to load
           const target = e.target as HTMLImageElement;
@@ -137,8 +146,8 @@ const CardComponent: React.FC<CardProps> = ({
           fallback.appendChild(questionMark);
           
           // Add click handler to fallback
-          if (!disabled && onClick) {
-            fallback.addEventListener('click', onClick);
+          if (!disabled && handleCardClick) {
+            fallback.addEventListener('click', handleCardClick);
           }
           
           // Replace the img with the fallback div

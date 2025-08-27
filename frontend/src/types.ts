@@ -25,7 +25,7 @@ export interface TradeOffer {
 }
 
 export interface AuctionSummary {
-  type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win';
+  type: 'no_bids' | 'matched_bid' | 'bluff_detected' | 'normal_win' | 'auctioneer_wins';
   message: string;
   auctioneerName: string;
   winnerName?: string;
@@ -49,8 +49,8 @@ export interface GameState {
   auctionEndTime?: number; // timestamp when auction ends
   disqualifiedPlayers: string[]; // list of player IDs who are disqualified from current auction
   
-  // Tuna bonus tracking
-  tunaCardsDrawn: number; // number of Tuna cards that have been drawn so far
+  // Swordfish bonus tracking
+  swordfishCardsDrawn: number; // number of Swordfish cards that have been drawn so far
   
   // Auction summary state
   auctionSummary?: AuctionSummary;

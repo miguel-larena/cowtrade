@@ -243,6 +243,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
                         key={card.id}
                         card={card}
                         showValue={true}
+                        onCardClick={() => {}}
                       />
                     ))}
                   </div>
@@ -270,6 +271,7 @@ const Scoreboard: React.FC<ScoreboardProps> = ({
                         key={card.id}
                         card={card}
                         showValue={true}
+                        onCardClick={() => {}}
                       />
                     ))}
                   </div>

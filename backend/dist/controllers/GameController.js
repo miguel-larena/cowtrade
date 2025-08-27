@@ -127,11 +127,31 @@ class GameController {
         this.restartAuctionAfterBluff = async (req, res) => {
             try {
                 const { gameId } = req.params;
+                console.log(`🎯 Controller: restartAuctionAfterBluff called for game: ${gameId}`);
+                console.log(`📝 Request params:`, req.params);
+                console.log(`📝 Request body:`, req.body);
                 const game = await this.gameService.restartAuctionAfterBluff(gameId);
+                console.log(`✅ Controller: restartAuctionAfterBluff successful for game: ${gameId}`);
                 res.json(game);
             }
             catch (error) {
+                console.error(`❌ Controller: restartAuctionAfterBluff failed for game: ${req.params.gameId}:`, error);
                 res.status(400).json({ error: 'Failed to restart auction after bluff' });
+            }
+        };
+        this.giveCardToAuctioneer = async (req, res) => {
+            try {
+                const { gameId } = req.params;
+                console.log(`🎯 Controller: giveCardToAuctioneer called for game: ${gameId}`);
+                console.log(`📝 Request params:`, req.params);
+                console.log(`📝 Request body:`, req.body);
+                const game = await this.gameService.giveCardToAuctioneer(gameId);
+                console.log(`✅ Controller: giveCardToAuctioneer successful for game: ${gameId}`);
+                res.json(game);
+            }
+            catch (error) {
+                console.error(`❌ Controller: giveCardToAuctioneer failed for game: ${req.params.gameId}:`, error);
+                res.status(400).json({ error: 'Failed to give card to auctioneer' });
             }
         };
         this.initiateTrade = async (req, res) => {

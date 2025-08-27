@@ -26,6 +26,7 @@ function App() {
     matchBid,
     clearAuctionSummary,
     restartAuctionAfterBluff,
+    giveCardToAuctioneer,
     initiateTrade,
     makeTradeOffer,
     executeTrade
@@ -143,6 +144,7 @@ function App() {
               onMatchBid={matchBid}
               onClearAuctionSummary={clearAuctionSummary}
               onRestartAuctionAfterBluff={restartAuctionAfterBluff}
+              onGiveCardToAuctioneer={giveCardToAuctioneer}
               onInitiateTrade={initiateTrade}
               onMakeTradeOffer={makeTradeOffer}
               onExecuteTrade={executeTrade}

@@ -14,7 +14,8 @@ export declare class GameService {
     matchBid(gameId: string, playerId: string): Promise<GameState>;
     clearAuctionSummary(gameId: string): Promise<GameState>;
     restartAuctionAfterBluff(gameId: string): Promise<GameState>;
-    private calculateTunaBonus;
+    giveCardToAuctioneer(gameId: string): Promise<GameState>;
+    private calculateSwordfishBonus;
     private finalizeAuction;
     private getCombinations;
     private transferMoneyCards;

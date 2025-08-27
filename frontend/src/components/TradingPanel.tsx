@@ -8,6 +8,7 @@ interface TradingPanelProps {
   onInitiateTrade: (initiatorId: string, partnerId: string) => Promise<void>;
   onMakeTradeOffer: (playerId: string, moneyCards: string[], animalCards: string[]) => Promise<void>;
   onExecuteTrade: () => Promise<void>;
+  onTradePartnerConfirmed?: () => void; // Callback when trade partner is confirmed
 }
 
 const TradingPanel: React.FC<TradingPanelProps> = ({
@@ -15,7 +16,8 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
   currentPlayerId,
   onInitiateTrade,
   onMakeTradeOffer,
-  onExecuteTrade
+  onExecuteTrade,
+  onTradePartnerConfirmed
 }) => {
   const [selectedAnimalCards, setSelectedAnimalCards] = useState<string[]>([]);
   const [selectedMoneyCards, setSelectedMoneyCards] = useState<string[]>([]);
@@ -142,6 +144,10 @@ const TradingPanel: React.FC<TradingPanelProps> = ({
       console.log('Confirming trade with partner:', selectedPartnerId);
       onInitiateTrade(currentPlayerId, selectedPartnerId);
       setSelectedPartnerId(null);
+      // Notify parent that trade partner has been confirmed
+      if (onTradePartnerConfirmed) {
+        onTradePartnerConfirmed();
+      }
     }
   };
 

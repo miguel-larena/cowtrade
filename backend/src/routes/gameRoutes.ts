@@ -19,6 +19,7 @@ router.post('/:gameId/auction/end', gameController.endAuction);
 router.post('/:gameId/auction/match', gameController.matchBid);
 router.post('/:gameId/auction/clear-summary', gameController.clearAuctionSummary);
 router.post('/:gameId/auction/restart-after-bluff', gameController.restartAuctionAfterBluff);
+router.post('/:gameId/auction/give-card-to-auctioneer', gameController.giveCardToAuctioneer);
 router.post('/:gameId/trade/initiate', gameController.initiateTrade);
 router.post('/:gameId/trade/offer', gameController.makeTradeOffer);
 router.post('/:gameId/trade/execute', gameController.executeTrade);

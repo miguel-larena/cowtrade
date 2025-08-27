@@ -2,8 +2,8 @@ const API_BASE = 'http://localhost:3001/api/game';
 
 async function testNormalPayment() {
   try {
-    console.log('🧪 Testing Normal Payment (No Tuna Bonus)...\n');
-    console.log('This will test the payment logic without Tuna bonus interference\n');
+    console.log('🧪 Testing Normal Payment (No Swordfish Bonus)...\n');
+console.log('This will test the payment logic without Swordfish bonus interference\n');
 
     // Step 1: Create a game
     console.log('1. Creating game...');
@@ -38,8 +38,8 @@ async function testNormalPayment() {
     const startedGame = await startResponse.json();
     console.log(`✅ Game started. Current phase: ${startedGame.currentPhase}\n`);
 
-    // Step 4: Start an auction (keep trying until we get a non-Tuna card)
-    console.log('4. Starting auction (looking for non-Tuna card)...');
+    // Step 4: Start an auction (keep trying until we get a non-Swordfish card)
+    console.log('4. Starting auction (looking for non-Swordfish card)...');
     let auctionGame;
     let attempts = 0;
     const maxAttempts = 10;
@@ -55,11 +55,11 @@ async function testNormalPayment() {
       });
       auctionGame = await auctionResponse.json();
       
-      if (auctionGame.auctionCard?.name !== 'Tuna') {
-        console.log(`✅ Got non-Tuna card: ${auctionGame.auctionCard?.name}`);
+      if (auctionGame.auctionCard?.name !== 'Swordfish') {
+        console.log(`✅ Got non-Swordfish card: ${auctionGame.auctionCard?.name}`);
         break;
       } else {
-        console.log(`   Got Tuna card, trying again...`);
+        console.log(`   Got Swordfish card, trying again...`);
         // Clear the auction and try again
         await fetch(`${API_BASE}/${gameId}/auction/clear`, {
           method: 'POST',
@@ -68,8 +68,8 @@ async function testNormalPayment() {
       }
     }
     
-    if (auctionGame.auctionCard?.name === 'Tuna') {
-      console.log(`❌ Could not get non-Tuna card after ${maxAttempts} attempts`);
+    if (auctionGame.auctionCard?.name === 'Swordfish') {
+      console.log(`❌ Could not get non-Swordfish card after ${maxAttempts} attempts`);
       return;
     }
 

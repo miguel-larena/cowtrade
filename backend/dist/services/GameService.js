@@ -31,7 +31,7 @@ class GameService {
             auctioneer: null,
             auctionEndTime: undefined,
             disqualifiedPlayers: [],
-            tunaCardsDrawn: 0,
+            swordfishCardsDrawn: 0,
             auctionSummary: undefined,
             tradeState: 'none',
             tradeInitiator: null,
@@ -149,28 +149,28 @@ class GameService {
         const auctionCard = animalCards[randomIndex];
         // Remove the card from the deck
         game.deck = game.deck.filter(card => card.id !== auctionCard.id);
-        // Handle Tuna bonus
-        if (auctionCard.name === 'Tuna') {
-            game.tunaCardsDrawn++;
-            const bonusAmount = this.calculateTunaBonus(game.tunaCardsDrawn);
-            console.log(`=== Tuna Bonus: ${game.tunaCardsDrawn} Tuna drawn, bonus amount: $${bonusAmount} ===`);
+        // Handle Swordfish bonus
+        if (auctionCard.name === 'Swordfish') {
+            game.swordfishCardsDrawn++;
+            const bonusAmount = this.calculateSwordfishBonus(game.swordfishCardsDrawn);
+            console.log(`=== Swordfish Bonus: ${game.swordfishCardsDrawn} Swordfish drawn, bonus amount: $${bonusAmount} ===`);
             // Give bonus to all players
             game.players.forEach(player => {
-                console.log(`Before Tuna bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
+                console.log(`Before Swordfish bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
                 // Add money to player's total
                 player.money += bonusAmount;
                 // Add the appropriate money card to player's hand
                 const bonusCard = {
-                    id: `tuna_bonus_${game.tunaCardsDrawn}_${player.id}_${Date.now()}`,
+                    id: `swordfish_bonus_${game.swordfishCardsDrawn}_${player.id}_${Date.now()}`,
                     type: 'money',
                     value: bonusAmount,
                     name: bonusAmount.toString()
                 };
                 player.hand.push(bonusCard);
-                console.log(`After Tuna bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
+                console.log(`After Swordfish bonus - ${player.name}: $${player.money}, ${player.hand.filter(c => c.type === 'money').length} money cards`);
                 console.log(`Added bonus card: ${bonusCard.name} ($${bonusCard.value})`);
             });
-            console.log(`=== Tuna Bonus Complete ===`);
+            console.log(`=== Swordfish Bonus Complete ===`);
         }
         // Set up auction state
         game.auctionCard = auctionCard;
@@ -383,11 +383,29 @@ class GameService {
         return game;
     }
     async restartAuctionAfterBluff(gameId) {
+        console.log(`🔄 restartAuctionAfterBluff called for game: ${gameId}`);
         const game = this.games.get(gameId);
         if (!game) {
+            console.error(`❌ Game not found: ${gameId}`);
             throw new Error('Game not found');
         }
+        console.log(`📊 Game state check:`, {
+            gameId: game.id,
+            auctionState: game.auctionState,
+            auctionSummaryType: game.auctionSummary?.type,
+            auctionSummary: game.auctionSummary,
+            auctioneer: game.auctioneer,
+            currentBid: game.currentBid,
+            currentBidder: game.currentBidder,
+            disqualifiedPlayers: game.disqualifiedPlayers
+        });
         if (game.auctionState !== 'summary' || game.auctionSummary?.type !== 'bluff_detected') {
+            console.error(`❌ Cannot restart auction - invalid state:`, {
+                expectedState: 'summary',
+                actualState: game.auctionState,
+                expectedSummaryType: 'bluff_detected',
+                actualSummaryType: game.auctionSummary?.type
+            });
             throw new Error('Cannot restart auction - no bluff detected');
         }
         // Reset auction state but keep the same card and auctioneer
@@ -400,9 +418,74 @@ class GameService {
         game.updatedAt = new Date();
         return game;
     }
+    async giveCardToAuctioneer(gameId) {
+        console.log(`🎁 giveCardToAuctioneer called for game: ${gameId}`);
+        const game = this.games.get(gameId);
+        if (!game) {
+            console.error(`❌ Game not found: ${gameId}`);
+            throw new Error('Game not found');
+        }
+        console.log(`📊 Game state check for giveCardToAuctioneer:`, {
+            gameId: game.id,
+            auctionState: game.auctionState,
+            auctionSummaryType: game.auctionSummary?.type,
+            auctionSummary: game.auctionSummary,
+            auctioneer: game.auctioneer,
+            auctionCard: game.auctionCard ? game.auctionCard.name : 'none',
+            disqualifiedPlayers: game.disqualifiedPlayers,
+            totalPlayers: game.players.length
+        });
+        if (game.auctionState !== 'summary' || game.auctionSummary?.type !== 'bluff_detected') {
+            console.error(`❌ Cannot give card to auctioneer - invalid state:`, {
+                expectedState: 'summary',
+                actualState: game.auctionState,
+                expectedSummaryType: 'bluff_detected',
+                actualSummaryType: game.auctionSummary?.type
+            });
+            throw new Error('Cannot give card to auctioneer - no bluff detected');
+        }
+        if (!game.auctionCard || !game.auctioneer) {
+            console.error(`❌ Cannot give card to auctioneer - missing data:`, {
+                hasAuctionCard: !!game.auctionCard,
+                hasAuctioneer: !!game.auctioneer
+            });
+            throw new Error('No auction card or auctioneer found');
+        }
+        // Check if all other players are disqualified
+        const activePlayers = game.players.filter(player => player.id !== game.auctioneer &&
+            !game.disqualifiedPlayers.includes(player.id));
+        if (activePlayers.length > 0) {
+            throw new Error('Cannot give card to auctioneer - there are still active players');
+        }
+        // Find the auctioneer player
+        const auctioneer = game.players.find(p => p.id === game.auctioneer);
+        if (!auctioneer) {
+            throw new Error('Auctioneer not found');
+        }
+        // Give the auction card to the auctioneer
+        auctioneer.hand.push(game.auctionCard);
+        // Create summary message
+        game.auctionSummary = {
+            type: 'auctioneer_wins',
+            message: `All other players were disqualified. ${auctioneer.name} receives the ${game.auctionCard.name} card.`,
+            auctioneerName: auctioneer.name,
+            winnerName: auctioneer.name,
+            bidAmount: 0,
+            animalName: game.auctionCard.name
+        };
+        // Reset auction state
+        game.auctionState = 'summary';
+        game.auctionCard = undefined;
+        game.currentBid = 0;
+        game.currentBidder = null;
+        game.auctionEndTime = undefined;
+        game.auctioneer = null;
+        game.updatedAt = new Date();
+        return game;
+    }
     // Helper methods
-    calculateTunaBonus(tunaCardsDrawn) {
-        switch (tunaCardsDrawn) {
+    calculateSwordfishBonus(swordfishCardsDrawn) {
+        switch (swordfishCardsDrawn) {
             case 1: return 50;
             case 2: return 100;
             case 3: return 200;

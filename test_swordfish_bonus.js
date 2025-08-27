@@ -1,8 +1,8 @@
 const API_BASE = 'http://localhost:3001/api/game';
 
-async function testTunaBonus() {
+async function testSwordfishBonus() {
   try {
-    console.log('🧪 Testing Tuna Bonus Functionality...\n');
+    console.log('🧪 Testing Swordfish Bonus Functionality...\n');
 
     // Step 1: Create a game
     console.log('1. Creating game...');
@@ -52,10 +52,10 @@ async function testTunaBonus() {
     
     console.log(`✅ Auction started`);
     console.log(`✅ Auction card: ${auctionGame.auctionCard?.name}`);
-    console.log(`✅ Tuna cards drawn: ${auctionGame.tunaCardsDrawn}`);
+    console.log(`✅ Swordfish cards drawn: ${auctionGame.swordfishCardsDrawn}`);
     
-    if (auctionGame.auctionCard?.name === 'Tuna') {
-      console.log('\n🎯 TUNA CARD DRAWN! Checking bonus...\n');
+    if (auctionGame.auctionCard?.name === 'Swordfish') {
+      console.log('\n🎯 SWORDFISH CARD DRAWN! Checking bonus...\n');
       
       // Check each player's bonus
       auctionGame.players.forEach((player, index) => {
@@ -63,32 +63,32 @@ async function testTunaBonus() {
         console.log(`  Money: $${player.money}`);
         console.log(`  Money cards: ${player.hand.filter(c => c.type === 'money').length}`);
         
-        const tunaBonusCards = player.hand.filter(c => c.id.includes('tuna_bonus'));
-        console.log(`  Tuna bonus cards: ${tunaBonusCards.length}`);
-        if (tunaBonusCards.length > 0) {
-          console.log(`  Bonus card value: $${tunaBonusCards[0].value}`);
+        const swordfishBonusCards = player.hand.filter(c => c.id.includes('swordfish_bonus'));
+        console.log(`  Swordfish bonus cards: ${swordfishBonusCards.length}`);
+        if (swordfishBonusCards.length > 0) {
+          console.log(`  Bonus card value: $${swordfishBonusCards[0].value}`);
         }
         console.log('');
       });
       
       // Verify the bonus
-      const expectedBonus = auctionGame.tunaCardsDrawn === 1 ? 50 : 
-                           auctionGame.tunaCardsDrawn === 2 ? 100 :
-                           auctionGame.tunaCardsDrawn === 3 ? 200 : 500;
+      const expectedBonus = auctionGame.swordfishCardsDrawn === 1 ? 50 : 
+                           auctionGame.swordfishCardsDrawn === 2 ? 100 :
+                           auctionGame.swordfishCardsDrawn === 3 ? 200 : 500;
       
       const allPlayersHaveBonus = auctionGame.players.every(player => {
-        const tunaBonusCards = player.hand.filter(c => c.id.includes('tuna_bonus'));
-        return tunaBonusCards.length === 1 && tunaBonusCards[0].value === expectedBonus;
+        const swordfishBonusCards = player.hand.filter(c => c.id.includes('swordfish_bonus'));
+        return swordfishBonusCards.length === 1 && swordfishBonusCards[0].value === expectedBonus;
       });
       
       if (allPlayersHaveBonus) {
-        console.log('✅ SUCCESS: All players received correct Tuna bonus cards!');
+        console.log('✅ SUCCESS: All players received correct Swordfish bonus cards!');
       } else {
-        console.log('❌ FAILURE: Not all players received correct Tuna bonus cards');
+        console.log('❌ FAILURE: Not all players received correct Swordfish bonus cards');
       }
       
     } else {
-      console.log('ℹ️  No Tuna card drawn this time. The bonus system is working correctly.');
+      console.log('ℹ️  No Swordfish card drawn this time. The bonus system is working correctly.');
     }
 
   } catch (error) {
@@ -97,4 +97,4 @@ async function testTunaBonus() {
 }
 
 // Run the test
-testTunaBonus(); 
+testSwordfishBonus(); 

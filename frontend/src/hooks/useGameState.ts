@@ -23,6 +23,7 @@ interface UseGameStateReturn {
   matchBid: () => Promise<void>;
   clearAuctionSummary: () => Promise<void>;
   restartAuctionAfterBluff: () => Promise<void>;
+  giveCardToAuctioneer: () => Promise<void>; // Give card to auctioneer when all players disqualified
   
   // Trade actions (for future implementation)
   initiateTrade: (initiatorId: string, partnerId: string) => Promise<void>;
@@ -71,13 +72,13 @@ export const useGameState = (): UseGameStateReturn => {
     try {
       const updatedGameState = await ApiService.getGame(gameId);
       
-      // Debug logging for money card transfers and Tuna bonuses
+      // Debug logging for money card transfers and Swordfish bonuses
       if (gameState && updatedGameState) {
         console.log(`=== Frontend game state update ===`);
         
-        // Check for Tuna bonus
-        if (updatedGameState.tunaCardsDrawn !== gameState.tunaCardsDrawn) {
-          console.log(`🐟 TUNA BONUS DETECTED: ${gameState.tunaCardsDrawn} -> ${updatedGameState.tunaCardsDrawn}`);
+        // Check for Swordfish bonus
+        if (updatedGameState.swordfishCardsDrawn !== gameState.swordfishCardsDrawn) {
+          console.log(`🐟 SWORDFISH BONUS DETECTED: ${gameState.swordfishCardsDrawn} -> ${updatedGameState.swordfishCardsDrawn}`);
         }
         
         // Log all players' money card changes
@@ -94,10 +95,10 @@ export const useGameState = (): UseGameStateReturn => {
               console.log(`${currentPlayer.name} money cards before:`, currentMoneyCards.map(c => `${c.name} ($${c.value})`));
               console.log(`${currentPlayer.name} money cards after:`, updatedMoneyCards.map(c => `${c.name} ($${c.value})`));
               
-              // Check for Tuna bonus cards specifically
-              const tunaBonusCards = updatedMoneyCards.filter(c => c.id.includes('tuna_bonus'));
-              if (tunaBonusCards.length > 0) {
-                console.log(`🎯 TUNA BONUS CARDS FOUND for ${currentPlayer.name}:`, tunaBonusCards.map(c => `${c.name} ($${c.value})`));
+              // Check for Swordfish bonus cards specifically
+              const swordfishBonusCards = updatedMoneyCards.filter(c => c.id.includes('swordfish_bonus'));
+              if (swordfishBonusCards.length > 0) {
+                console.log(`🎯 SWORDFISH BONUS CARDS FOUND for ${currentPlayer.name}:`, swordfishBonusCards.map(c => `${c.name} ($${c.value})`));
               }
             }
           }
@@ -335,6 +336,17 @@ export const useGameState = (): UseGameStateReturn => {
     );
   }, [gameId, handleApiCall]);
 
+  const giveCardToAuctioneer = useCallback(async () => {
+    if (!gameId) return;
+    
+    await handleApiCall(
+      () => ApiService.giveCardToAuctioneer(gameId),
+      (updatedGameState) => {
+        setGameState(updatedGameState);
+      }
+    );
+  }, [gameId, handleApiCall]);
+
   // Trade actions (for future implementation)
   const initiateTrade = useCallback(async (initiatorId: string, partnerId: string) => {
     if (!gameId) return;
@@ -390,6 +402,7 @@ export const useGameState = (): UseGameStateReturn => {
     matchBid,
     clearAuctionSummary,
     restartAuctionAfterBluff,
+    giveCardToAuctioneer,
     
     // Trade actions
     initiateTrade,
